@@ -1,4 +1,4 @@
-README.txt for "EKF" Directory
+#README.txt for "EKF" Directory
 
 This directory is for all the code that will hold the Kalman Filtering section of the project.
 
