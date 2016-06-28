@@ -30,7 +30,7 @@ ChiefElems = [a ecc inc raan argper f0];
 n = sqrt(mu/a^3);   % mean motion
 period = 2*pi/n;    % orbital period
 Nt = 25;            % prediction horizon for trajectory
-tLoiter = 300;       % loitering time at end of maneuver
+tLoiter = 10;       % loitering time at end of maneuver
 timeHold = Time(end)+1:Ts:Time(end)+tLoiter; % loitering time vector
 
 % Total time
