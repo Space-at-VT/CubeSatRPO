@@ -9,6 +9,7 @@ global mu;
 mu = 3.986e5;
 global J2;
 J2 = 1082.6e-6;
+% change
 
 guiHeight = 500;
 guiWidth = 1000;
