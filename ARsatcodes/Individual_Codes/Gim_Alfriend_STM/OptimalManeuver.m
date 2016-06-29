@@ -1,5 +1,7 @@
 classdef OptimalManeuver < handle
-    
+    % Dylan - I think Andrew was planning on adding control into the GA_STM
+    % work with this. It should be relatively easy to add it, since it
+    % should be 'very' similar to the HCW OptimalManeuver Class
     properties
         X
         U

@@ -1,5 +1,9 @@
 clear; close all; clc; asv; addPaths();
 
+% Dylan - So this MOSTLY works correctly. AFAIK, the HCW works. We need to
+% verify this though. Also, it needs comments for explanation, and should
+% be expanded to check more cases
+
 HCW_Config_Script();
 
 mf = ConvexSFFManeuver(initStruct);

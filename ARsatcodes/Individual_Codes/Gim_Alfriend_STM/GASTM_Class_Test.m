@@ -1,5 +1,16 @@
 clear; close all; clc; asv;
 
+% Dylan - This should be better documented. Also, it only propagates the
+% orbit forward in time, there is no control. We need to add that.
+% 
+% Another note: we should just throw all the functions into their own
+% folder here once the object oriented code is working correctly, so that
+% it's clearer about what is dependent etc. We can then specify that there
+% is a standard script version and a OO version
+%
+% Last thing: I trust Andrew, but we should have some VERIFICATION method
+% for these..
+
 Req     = 6378.1363e3; % Radius of Earth (meters)
 mu      = 3.986004415e14; % Gravitational parameter (m^3/s^2)
 J2      = 1082.629e-6; % J2 coefficient
@@ -75,6 +86,10 @@ initStruct.initDeputyDescription = deputyOrbitDescription;
 initStruct.RelInitState = RelInitState(:);
 initStruct.Elements = Elements(:);
 
+% Dylan - These method calls to the GA_STM Class weren't working, but
+% should now. It had something to do with Andrew abstracting the handle as
+% Formation flying, and not defining the methods in the abstract class. I
+% think....
 GA = GimAlfriendSTM(initStruct);
 GA.makeTimeVector();
 GA.PropagateGASTM();

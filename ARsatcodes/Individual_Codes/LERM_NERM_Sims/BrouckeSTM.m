@@ -1,5 +1,7 @@
 function Phi_Broucke = BrouckeSTM(tspan,mu,a,ecc,omega)
 
+% Dylan - Needs commenting and double checking..
+
 n = sqrt(mu/a^3);
 eta = sqrt(1-ecc^2);
 p = a*(1-ecc^2);

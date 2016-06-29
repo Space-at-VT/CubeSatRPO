@@ -1,5 +1,9 @@
 function DX = HCW(t,X,n)
 
+% Dylan - We should have "headers" to the files we use like this. It's a
+% good idea. This will allow us to give proper credit to Andrew and to
+% ourselves for when we alter/improve them
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % All units are in meters and meters/sec, instead of mu = 3.986e5 km^3/s^3,
 % it is 3.986e14 m^3/s^2

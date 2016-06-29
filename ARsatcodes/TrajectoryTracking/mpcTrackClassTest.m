@@ -1,4 +1,8 @@
 clear; close all; clc;
+
+% Only checks the Orbit class, but should test MPCTracking class to allow
+% for MPC...
+
 % This is a simple test script to debug the TwoBodyOrbit class
 % Author: Andrew Rogers, Ph.D.
 % Date:   29 March 2016

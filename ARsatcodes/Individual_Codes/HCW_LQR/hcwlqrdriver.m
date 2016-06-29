@@ -1,5 +1,8 @@
 clear all; close all; clc;
 
+% Dylan - This should be commented for explanation. Although I think this
+% is pretty complete
+
 mu = 3.986e14;
 a = 7000e3;
 n = sqrt(mu/a^3);

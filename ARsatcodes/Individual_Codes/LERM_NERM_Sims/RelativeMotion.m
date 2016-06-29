@@ -1,5 +1,7 @@
 classdef RelativeMotion < handle
 %% RelativeMotion class
+% 
+% Dylan - This is a good example of how to define/setup a class. 
 %
 % This is a simple class to propagate the linear and nonlinear equations of
 % relative motion for spacecraft formation flying.

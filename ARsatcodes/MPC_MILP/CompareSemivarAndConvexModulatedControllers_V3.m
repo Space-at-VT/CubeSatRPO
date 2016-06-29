@@ -25,10 +25,13 @@ tLoiter = 10;
 0;
 timeHold = Time(end)+1:Ts:Time(end)+tLoiter;
 
-Time = [Time, timeHold];
+Time = [Time, timeHold, timeHold(end)+1];
 Ref = [Xk(1,:); Xk(2,:); Xk(3,:); Xk(4,:); Xk(5,:); Xk(6,:)];
 Ref = [Ref, repmat(Ref(:,end),1,Nt+length(timeHold))];
+Uk2 = [Uk, zeros(3,Nt+length(timeHold+1)); zeros(3,length(Uk)), zeros(3,Nt+length(timeHold+1))];
 Uk = [Uk, zeros(3,length(timeHold))];
+
+
 g0 = 9.806;
 [fuelCostOptimal,deltaVOptimal,mOpt] = TotalFuel(Time(1:end-1),Uk,m0,...
     Isp,g0,Ts);
@@ -94,13 +97,16 @@ yawRate0 = 0;
 pitchRate0 = 0;
 rollRate0 = 0;
 options = sdpsettings('solver','gurobi','verbose',0,'gurobi.TimeLimit',Ts);
+% Convert initial attitude errors into quaternion/angular velocity errors
 [Q0,W0] = attitudeInitialize(yaw0,pitch0,roll0,yawRate0,pitchRate0,...
     rollRate0,0);
+% get rid of redundant quaternion value (the scalar value)
 Xr0 = [Q0(2:4); W0];
 small = 0.0.*Xt0;
 xt = Xt0 - small;
 d = [Xr0; xt];
 
+% l_p norms
 pnorm = [1 2 1 2];
 
 for ii = 1:length(pnorm)
@@ -113,7 +119,7 @@ for ii = 1:length(pnorm)
             Torques(:,:,ii),deltaVTracking(ii),mTrack(:,ii),Xqt(:,:,ii),...
             Uqt(:,:,ii),rotEnergy(ii),tranEnergy(ii),trajDiag(:,ii),attDiag(:,ii),...
             trajObj(:,ii),attObj(:,ii),punt(ii),pctPunt(ii)] = ...
-            TrackTraj_MPC_with_Thrust_Torques_V2(Time,d,Nt,Ref,...
+            TrackTraj_MPC_with_Thrust_Torques_V2(Time,d,Nt,Ref,Uk2,...
             TrackingController,AttitudeController,nx,nu,ny,ntau,Nsim,Isp,...
             g0,m0,Ts,Imat,a,ecc,mu,n,rho);
     elseif ii == 3 || ii == 4
@@ -125,7 +131,7 @@ for ii = 1:length(pnorm)
             Torques(:,:,ii),deltaVTracking(ii),mTrack(:,ii),Xqt(:,:,ii),...
             Uqt(:,:,ii),rotEnergy(ii),tranEnergy(ii),trajDiag(:,ii),attDiag(:,ii),...
             trajObj(:,ii),attObj(:,ii),punt(ii),pctPunt(ii)] = ...
-            TrackTraj_MPC_with_Thrust_Torques_Modulated_V2(Time,d,Nt,Ref,...
+            TrackTraj_MPC_with_Thrust_Torques_Modulated_V2(Time,d,Nt,Ref,Uk2,...
             TrackingController,AttitudeController,nx,nu,ny,ntau,Nsim,Isp,...
             g0,m0,Ts,Imat,a,ecc,mu,n,rho,Umin);
     else
@@ -165,7 +171,7 @@ end
 % disp(T)
 
 
-plotSimulations(Time,X,Ref,Xt0,Xf,Uk,err,Thruster,Umax,yaw,pitch,roll,...
+plotSimulationsV2(Time,X,Ref,Xt0,Xf,Uk,err,Thruster,Umax,yaw,pitch,roll,...
     Torques,maxTorque,mOpt,mTrack,deltaVOptimal,deltaVTracking)
 
 save compareworkspace_18_dec_tf_1232_noICerr.mat

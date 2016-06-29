@@ -1,5 +1,10 @@
 clear all; close all; clc;
 
+% Dylan - We should dump the standalone functions into their own folder
+% called like "script versions", and leave the Object Oriented versions
+% here. The OO versions are better organized, but the standalone funcs and
+% scripts could be useful.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % All units are in meters and meters/sec, instead of mu = 3.986e5 km^3/s^3,
 % it is 3.986e14 m^3/s^2

@@ -1,5 +1,9 @@
 classdef MPCTracking_HCW < handle
     
+    % Dylan - 
+    % This is good, but it doesn't actually have the simulation in it.
+    % Needs commets too.
+    
     properties
     X
     U

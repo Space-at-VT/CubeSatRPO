@@ -1,5 +1,8 @@
 clear all; close all; clc;
 
+% Dylan - Again, let's lump scripts into their own subdirectory, while
+% keeping the OO stuff out here together.
+
 mu = 3.986e14;
 a = 7000e3;
 n = sqrt(mu/a^3);

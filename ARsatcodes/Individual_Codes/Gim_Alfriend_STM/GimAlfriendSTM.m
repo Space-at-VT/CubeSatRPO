@@ -1,5 +1,5 @@
 classdef GimAlfriendSTM < handle
-    % Removed FormationFlying handle...
+    % Dylan - Removed FormationFlying handle...Checkout if useful later?
 %% Gim-Alfriend State Transition Matrix Class
 %
 % This class contains the GA_STMects necessary to propagate the Gim-Alfriend
@@ -32,9 +32,11 @@ classdef GimAlfriendSTM < handle
     
     methods
         function GA_STM = GimAlfriendSTM(initStruct)
+            % Dylan -
             % This line was causing errors, I also uncommented numPeriod,
             % mu, t0. It seems to be an issue with the abstract class
-            % "formationFlying"
+            % "formationFlying". This is what I changed to get the method
+            % calls in the "Class Test" working.
 %             GA_STM@FormationFlying(initStruct.params{5},initStruct.params{6},initStruct.params{2});
             GA_STM.Req = initStruct.params{1};
             GA_STM.mu = initStruct.params{2};
@@ -126,6 +128,8 @@ classdef GimAlfriendSTM < handle
         end
     end
 end
+
+% Dylan - do we want to add all the sub-functions/daughter functions here?
 
 function PhiJ2 = PHI_GA_STM(t,J2,ChiefOsc,ChiefNSMean,Req,mu,tol)
 

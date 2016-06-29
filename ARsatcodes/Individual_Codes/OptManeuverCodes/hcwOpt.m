@@ -1,4 +1,8 @@
 classdef hcwOpt < handle
+    % Dylan - This is mostly done. Should review it, and get the
+    % feasibleTime stuff working...
+    %
+    %
     % This class constructs a fully-actuated or under-actuated, minimum-fuel
     % transfer for the HCW equations.
     properties

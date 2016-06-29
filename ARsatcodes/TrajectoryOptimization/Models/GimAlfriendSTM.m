@@ -148,6 +148,8 @@ classdef GimAlfriendSTM < handle
             end
         end
         
+        % Dylan - I'm not sure this is correct.. It gives weird answers, so
+        % we need to fix this!
         function obj = makeDiscreteMatrices(obj)
             t = obj.time;
             N = length(t);

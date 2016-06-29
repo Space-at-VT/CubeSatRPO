@@ -1,4 +1,9 @@
 clear all; close all; clc;
+
+% Dylan - I used this as a basis for mathcing the Class test results. They
+% agree with each other. However, we want to add control, not just
+% propagation!
+
 %% Constants to be used for this program
 
 Req     = 6378.1363e3; % Radius of Earth (meters)

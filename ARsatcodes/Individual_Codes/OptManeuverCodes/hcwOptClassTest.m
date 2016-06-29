@@ -1,5 +1,7 @@
 clear; close all; clc; asv;
 
+% Dylan - Needs comments, more examples
+
 mu = 3.986e14;
 a = 7000e3; n = sqrt(mu/a^3);
 nu = 6;

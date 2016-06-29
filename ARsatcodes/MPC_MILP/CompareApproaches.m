@@ -3,6 +3,10 @@ clear;
 close all;
 clc;
 
+% Dylan -
+% This seems to work, but it doesn't reproduce results from the
+% dissertation. Do we want to debug??...
+
 % Load a trajectory
 FTS = load('MILP_FullyActTrajGen_TrajectoryPlanner_tf_333_V2.mat');
 Shuttle = load('shuttleStructV2.mat');

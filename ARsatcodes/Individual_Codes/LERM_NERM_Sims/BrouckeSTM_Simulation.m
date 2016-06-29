@@ -1,5 +1,12 @@
 clear all; close all; clc;
 
+% Dylan -
+% This doesn't work right. We need to look at the BrouckeSTM func, and we
+% need a way to compare it to HCW/GA
+%
+% Also, it would be worth having some documentation on each about their
+% appropriate use domains (long/short length/time scales)
+
 mu = 3.986e14;
 a = 7000e3;
 ecc = 0.01;
