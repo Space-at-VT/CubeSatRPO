@@ -80,6 +80,8 @@ end
 
 t0 = 0; numPeriod = 3;
 
+%Ian - second test comment
+
 initStruct.params = {Req,mu,J2,tol,t0,numPeriod,safetyAltitude};
 initStruct.initChiefDescription = chiefOrbitDescription;
 initStruct.initDeputyDescription = deputyOrbitDescription;
