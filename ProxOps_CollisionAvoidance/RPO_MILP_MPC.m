@@ -100,7 +100,7 @@ TP = 2*pi/n;         %period
 
 % Mass flow rate [kg/s]
 g0 = 9.80665;
-ISP = I/(0.5*g0); %Full tank mass ~0.5;
+ISP = I/(0.5*g0); %Full tank mass ~0.5
 mdot = umax/ISP/g0;
 
 % Initial state
