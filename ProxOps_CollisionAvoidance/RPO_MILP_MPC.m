@@ -46,8 +46,8 @@ vz0 = 0.01;
 vmax = 0.5;  %m/s
 umax = 0.26;  %N
 mDry = 13;   %kg
-mFuel = 0.01; %kg
-ISP = 200;   %s
+mFuel = 0.5; %kg
+I = 800;   %s
 
 % Obstacles bounds [m]
 xbmin = -2.5;
@@ -99,7 +99,9 @@ n = sqrt(mu/a^3);    %mean motion [s^-1]
 TP = 2*pi/n;         %period
 
 % Mass flow rate [kg/s]
-mdot = umax/ISP/9.81;
+g0 = 9.80665;
+ISP = I/(0.5*g0); %Full tank mass ~0.5;
+mdot = umax/ISP/g0;
 
 % Initial state
 x = x0;     y = y0;     z = z0;     %positions
