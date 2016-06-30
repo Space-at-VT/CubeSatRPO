@@ -289,14 +289,16 @@ while  mFuel > 0  %computation will end when fuel mass is 0
                 
         % Calculate cpu time
         cpuT(iter) = toc;
+        cpustr = datestr(cpuT(iter)/3600/24, 'HH:MM:SS');
+        simstr = datestr(t0/3600/24, 'HH:MM:SS');
         
         % Data display
         if dispIter
             clc
             fprintf('Iteration %d\n',iter)  
             fprintf('--------------------------------\n')
-            fprintf('Simulation time: %.1f s\n',t0) 
-            fprintf('CPU time: %.3f s\n',cpuT(iter))
+            fprintf('Simulation time: %s\n',simstr) 
+            fprintf('CPU time: %s\n',cpustr)
             fprintf('Fuel remaining: %6.4f kg\n',mFuel)
             fprintf('x: %8.3f m  vx: %8.3f m/s\n',x(end),vx(end))
             fprintf('y: %8.3f m  vy: %8.3f m/s\n',y(end),vy(end))
