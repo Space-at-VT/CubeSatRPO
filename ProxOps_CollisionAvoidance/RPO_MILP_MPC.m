@@ -118,7 +118,6 @@ tic                   %start timer
 % Counter variables
 out = 0;
 timeout = 0;
-
 while  mFuel > 0  %computation will end when fuel mass is 0
     %% Optimization setup    
     % Introduce matrices/vectors
@@ -259,7 +258,7 @@ while  mFuel > 0  %computation will end when fuel mass is 0
             timeout = timeout+1;
         end
         
-        % Thrust control %pos/neg values of control thrust in each direction
+        % Thrust controls - pos/neg values of control thrust in each axis
         uxT = umax*(u(1:6:Nvar)-u(2:6:Nvar));
         uyT = umax*(u(3:6:Nvar)-u(4:6:Nvar));
         uzT = umax*(u(5:6:Nvar)-u(6:6:Nvar));
@@ -289,20 +288,20 @@ while  mFuel > 0  %computation will end when fuel mass is 0
                 
         % Calculate cpu time
         cpuT(iter) = toc;
-        cpustr = datestr(cpuT(iter)/3600/24, 'HH:MM:SS');
-        simstr = datestr(t0/3600/24, 'HH:MM:SS');
         
         % Data display
+        cpustr = datestr(cpuT(iter)/3600/24, 'DD HH:MM:SS');
+        simstr = datestr(t0/3600/24, 'DD HH:MM:SS');
         if dispIter
             clc
             fprintf('Iteration %d\n',iter)  
             fprintf('--------------------------------\n')
             fprintf('Simulation time: %s\n',simstr) 
             fprintf('CPU time: %s\n',cpustr)
-            fprintf('Fuel remaining: %6.4f kg\n',mFuel)
-            fprintf('x: %8.3f m  vx: %8.3f m/s\n',x(end),vx(end))
-            fprintf('y: %8.3f m  vy: %8.3f m/s\n',y(end),vy(end))
-            fprintf('z: %8.3f m  vz: %8.3f m/s\n\n',z(end),vz(end))
+            fprintf('Fuel remaining: %7.4f kg\n',mFuel)
+            fprintf('x: %6.3f m  vx: %6.3f m/s\n',x(end),vx(end))
+            fprintf('y: %6.3f m  vy: %6.3f m/s\n',y(end),vy(end))
+            fprintf('z: %6.3f m  vz: %6.3f m/s\n\n',z(end),vz(end))
             fprintf('Proximity bound exits: %d\n',out)
             fprintf('Solver timeouts: %d\n',timeout)
         end
@@ -316,7 +315,7 @@ while  mFuel > 0  %computation will end when fuel mass is 0
     if t0 > tmax,break,end
 end
 
-% Post MPC processing - updating position
+% Post MPC processing - fill last control
 ux = [ux,0];
 uy = [uy,0];
 uz = [uz,0];
@@ -428,8 +427,7 @@ ii = 1;               %counting no. simulations
 Aeq = zeros(3*Nsim,Ntotal);
 beq = zeros(3*Nsim,1);
 for kk = 1:3:(3*Nsim) %counting position of rows (x,y,z)
-    jj = 1;           %counting position of columns (in u())
-    
+    jj = 1;           %counting position of columns (in u())    
     %(_,_) denotes which cell of matrix is populated
     for nn = 1:ii     %counting no. iterations
         % xdd = 3n^2x+2nyd
@@ -795,7 +793,4 @@ for i = 1:4
     plot3([xb(i) xb(i)],[yb(i) yb(i)],[zbmin,zbmax],style,'linewidth',2)
 end
 hold off
-axis('equal')
-camva(9)
-view(-45,15)
 end
