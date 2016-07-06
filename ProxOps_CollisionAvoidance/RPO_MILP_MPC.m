@@ -91,7 +91,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = inf;
+tmax = 200;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2
@@ -325,11 +325,12 @@ t = 0:dt:t0;
 
 %% Plots
 % Trajectory
+pnum = 100;
 figure(1)
 hold on
-p1 = plot3(x,y,z,'b','linewidth',2);
+p1 = plot3(x(1:pnum),y(1:pnum),z(1:pnum),'b','linewidth',2);
 p2 = plot3(x0,y0,z0,'k^','linewidth',2,'markersize',10);
-p4 = quiver3(x,y,z,-ux,-uy,-uz,1,'r','linewidth',2);
+p4 = quiver3(x(1:pnum),y(1:pnum),z(1:pnum),-ux(1:pnum),-uy(1:pnum),-uz(1:pnum),1,'r','linewidth',2);
 p5 = PlotObstacle(xbmin,xbmax,ybmin,ybmax,zbmin,zbmax,'k');
 p6 = PlotObstacle(xlb,xub,ylb,yub,zlb,zub,'--k');
 hold off
@@ -352,7 +353,7 @@ plot([0 t0],[0 0],'--k','linewidth',2)
 axis([0 t0 -1.5 1.5])
 grid on
 title('Control Signals vs Time')
-ylabel('ux [N]')
+ylabel('ux')
 
 subplot(3,3,4)
 hold on
@@ -360,7 +361,7 @@ stairs(t,uy/umax,'-r','linewidth',2)
 plot([0 t0],[0 0],'--k','linewidth',2)
 axis([0 t0 -1.5 1.5])
 grid on
-ylabel('uy [N]')
+ylabel('uy')
 
 subplot(3,3,7)
 hold on
@@ -369,7 +370,7 @@ plot([0 t0],[0 0],'--k','linewidth',2)
 axis([0 t0 -1.5 1.5])
 grid on
 xlabel('Time [s]')
-ylabel('uz [N]')
+ylabel('uz')
 
 % Velocity
 subplot(3,3,2)
