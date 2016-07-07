@@ -38,13 +38,13 @@ a = 10e6; %m
 % x0 = 0; %m
 % y0 = 10;
 % z0 = 0;
-vx0 = 0; %m/s
+vx0 = 0.05; %m/s
 vy0 = 0;
 vz0 = 0;
 
 % Vehicle parameters
 vmax = 0.5;  %m/s
-umax = 1;  %N
+umax = 0.26;  %N
 mDry = 13;   %kg
 mFuel = 0.5; %kg
 I = 800;   %s
@@ -94,7 +94,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = 1000;
+tmax = 60;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2
@@ -114,7 +114,7 @@ t0 = 0;
 % Horizon setup
 tol = 1;              %tolerance for Approach target [m]
 m = mDry+mFuel;       %total mass
-phase = 'Hold';   %setting Approach sequence
+phase = 'Approach';   %setting Approach sequence
 iter = 1;             %number of simulations
 tic                   %start timer
 
@@ -202,7 +202,7 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         % Hold - cubesat is contrained to remain in the proximity area and
         % has sole objective to minimize fuel.
         case 'Hold'
-            T = 5;
+            T = 20;
             dt = 1;
             t = t0:dt:t0+T;
 
@@ -239,7 +239,7 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         dt,m,n,Nsim,Ntotal);
      
     % Max velocity constraint
-%     [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
+     [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
     
        
     %% MILP Optimization

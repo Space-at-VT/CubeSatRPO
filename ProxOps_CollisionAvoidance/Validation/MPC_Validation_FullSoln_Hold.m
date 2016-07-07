@@ -38,7 +38,7 @@ a = 10e6; %m
 % x0 = 0; %m
 % y0 = 10;
 % z0 = 0;
-vx0 = -0.05; %m/s
+vx0 = 0.05; %m/s
 vy0 = 0;
 vz0 = 0;
 
@@ -95,7 +95,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = 28;
+tmax = 60;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2
@@ -230,8 +230,8 @@ timeout = 0;
             intcon = 1:Nvar;
             
             % Proximity constraint (to stay within bounds)
-              [A,b] = Proximity(A,b,umax,[x0,y0,z0],[vx0,vy0,vz0],...
-              dt,m,Nsim,Ntotal,xlb,xub,ylb,yub,zlb,zub);
+            [A,b] = Proximity(A,b,umax,[x0,y0,z0],[vx0,vy0,vz0],...
+                dt,m,Nsim,Ntotal,xlb,xub,ylb,yub,zlb,zub);
 
      end
 
@@ -240,13 +240,13 @@ timeout = 0;
         dt,m,n,Nsim,Ntotal);
      
     % Max velocity constraint
-%      [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
+      [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
     
        
     %% MILP Optimization
     % Options set to hide default solver display and limit the maximum time
     % spent optimizing solution to maintain realtime capability
-    options = optimoptions(@intlinprog,'Display','iter','MaxTime',15); 
+    options = optimoptions(@intlinprog,'Display','iter'); 
     [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
     
     %% Post process

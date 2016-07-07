@@ -27,7 +27,7 @@
 % Plot of trajectory and obstacles in 3D space.
 % Plots of control signals, velocity, and position vs time.
 
-function RPO_MILP_MPC
+function MPC_Validation_FullSoln
 %% Inputs
 clc,close all
 
@@ -35,30 +35,30 @@ clc,close all
 a = 10e6; %m
 
 % Relative Initial state
-x0 = 30; %m
-y0 = 0;
+x0 = 0; %m
+y0 = 10;
 z0 = 0;
 vx0 = 0; %m/s
 vy0 = 0;
-vz0 = 0.01;
+vz0 = 0;
 
 % Vehicle parameters
-vmax = 0.5;  %m/s
-umax = 0.26;  %N
+vmax = 1;  %m/s
+umax = 1;  %N
 mDry = 13;   %kg
 mFuel = 0.5; %kg
 I = 800;   %s
 
 % Obstacles bounds [m]
-xbmin = -2.5;
+xbmin = -1;
 ybmin = -1;
 zbmin = -1;
-xbmax = 2.5;
+xbmax = 1;
 ybmax = 1;
 zbmax = 1;
 
 % Safety buffer [m]
-d = 0.5;
+d = 1;
 
 % Optmization weights
 w1 = 1e-1; %Thrust
@@ -78,9 +78,12 @@ zub = zbmax;
 zlb = zbmin;
 
 % Approach Target, center of proximity box
-xf = (xub+xlb)/2;
-yf = (yub+ylb)/2;
-zf = (zub+zlb)/2;
+xf = 0;
+yf = -30;
+zf = 0;
+% xf = (xub+xlb)/2;
+% yf = (yub+ylb)/2;
+% zf = (zub+zlb)/2;
 
 % Add safety buffer, surrounding obstacle [m]
 xbmind = xbmin-d;
@@ -91,7 +94,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = inf;
+tmax = 25;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2
@@ -118,7 +121,7 @@ tic                   %start timer
 % Counter variables
 out = 0;
 timeout = 0;
-while  mFuel > 0  %computation will end when fuel mass is 0
+%while  iter == 1; %mFuel > 0  %computation will end when fuel mass is 0
     %% Optimization setup    
     % Introduce matrices/vectors
     Aeq = [];beq = []; %equality constraints
@@ -146,7 +149,7 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         % the start of the simulation to approach target and when the target
         % temporarily leaves the proximity area and needs to return.
         case 'Approach' 
-            T = 10; %horizon time [s]
+            T = tmax; %horizon time [s]
             dt = 1; %time step [s]
             t = t0:dt:t0+T; %total time trajectory is generated for 
 
@@ -187,8 +190,8 @@ while  mFuel > 0  %computation will end when fuel mass is 0
                 [xf,yf,zf],dt,m,Nsim,Ntotal);
             
             % Min time constraint
-            [A,b] = MinTime(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
-                [xf,yf,zf],dt,m,Nsim,Ntotal);
+%            [A,b] = MinTime(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
+%                [xf,yf,zf],dt,m,Nsim,Ntotal);
             
             % Obstacle contraints
             for N = 1:NObj
@@ -198,51 +201,51 @@ while  mFuel > 0  %computation will end when fuel mass is 0
              
         % Hold - cubesat is contrained to remain in the proximity area and
         % has sole objective to minimize fuel.
-        case 'Hold'
-            T = 40;
-            dt = 1;
-            t = t0:dt:t0+T;
+%         case 'Hold'
+%             T = 40;
+%             dt = 1;
+%             t = t0:dt:t0+T;
+% 
+%             % Number of variables
+%             Nsim = length(t)-1; %simulations
+%             Nvar = 6*Nsim;      %positions & velocities
+%             Nhcw = 3*Nsim;      %HCW accelerations
+%             NU = 0;             %targeting- no target in Hold sequence
+%             Nbi = 0;            %timing- no min time in Hold sequence
+%             Ntotal = Nvar+Nhcw+NU+Nbi;     
+%             
+%             % Parameter bounds, lower & upper
+%             lb = [zeros(Nvar,1);    %Control thrusts
+%                 -inf*ones(Nhcw,1)]; %HCW accelerations
+%             
+%             ub = [ones(Nvar,1);    %Control thrusts
+%                 inf*ones(Nhcw,1)]; %HCW accelerations
+%             
+%             % Function coefficients
+%             f = [dt*ones(Nvar,1); %Control thrusts
+%                 zeros(Nhcw,1)];   %HCW accelerations
+%             
+%             % Integer constraints
+%             intcon = 1:Nvar;
+%             
+%             % Proximity constraint (to stay within bounds)
+%             [A,b] = Proximity(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
+%                 dt,m,Nsim,Ntotal,xlb,xub,ylb,yub,zlb,zub);
 
-            % Number of variables
-            Nsim = length(t)-1; %simulations
-            Nvar = 6*Nsim;      %positions & velocities
-            Nhcw = 3*Nsim;      %HCW accelerations
-            NU = 0;             %targeting- no target in Hold sequence
-            Nbi = 0;            %timing- no min time in Hold sequence
-            Ntotal = Nvar+Nhcw+NU+Nbi;     
-            
-            % Parameter bounds, lower & upper
-            lb = [zeros(Nvar,1);    %Control thrusts
-                -inf*ones(Nhcw,1)]; %HCW accelerations
-            
-            ub = [ones(Nvar,1);    %Control thrusts
-                inf*ones(Nhcw,1)]; %HCW accelerations
-            
-            % Function coefficients
-            f = [dt*ones(Nvar,1); %Control thrusts
-                zeros(Nhcw,1)];   %HCW accelerations
-            
-            % Integer constraints
-            intcon = 1:Nvar;
-            
-            % Proximity constraint (to stay within bounds)
-            [A,b] = Proximity(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
-                dt,m,Nsim,Ntotal,xlb,xub,ylb,yub,zlb,zub);
-
-    end
+     end
 
     % HCW accelerations
     [Aeq,beq] = HCW(Aeq,beq,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
         dt,m,n,Nsim,Ntotal);
      
     % Max velocity constraint
-    [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
+%    [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
     
        
     %% MILP Optimization
     % Options set to hide default solver display and limit the maximum time
     % spent optimizing solution to maintain realtime capability
-    options = optimoptions(@intlinprog,'Display','None','MaxTime',15); 
+    options = optimoptions(@intlinprog,'Display','iter','MaxTime',60); 
     [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
     
     %% Post process
@@ -274,14 +277,23 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         uhy(iter) = uhyT(1);
         uhz(iter) = uhzT(1);
         
-        % Update position & velocity    
-        vx(iter+1) = vx(iter)+(ux(iter)/m+uhx(iter))*dt;
-        x(iter+1) = x(iter)+vx(iter)*dt;
-        vy(iter+1) = vy(iter)+(uy(iter)/m+uhy(iter))*dt;
-        y(iter+1) = y(iter)+vy(iter)*dt;
-        vz(iter+1) = vz(iter)+(uz(iter)/m+uhz(iter))*dt;
-        z(iter+1) = z(iter)+vz(iter)*dt;
+        for qq = 1:length(uxT);
+            vx(qq+1) = vx(qq)+(uxT(qq)/m+uhxT(qq))*dt;
+            x(qq+1) = x(qq)+vx(qq)*dt;
+            vy(qq+1) = vy(qq)+(uyT(qq)/m+uhyT(qq))*dt;
+            y(qq+1) = y(qq)+vy(qq)*dt;
+            vz(qq+1) = vz(qq)+(uzT(qq)/m+uhzT(qq))*dt;
+            z(qq+1) = z(qq)+vz(qq)*dt;
+        end
         
+        % Update position & velocity    
+%         vx(iter+1) = vx(iter)+(ux(iter)/m+uhx(iter))*dt;
+%         x(iter+1) = x(iter)+vx(iter)*dt;
+%         vy(iter+1) = vy(iter)+(uy(iter)/m+uhy(iter))*dt;
+%         y(iter+1) = y(iter)+vy(iter)*dt;
+%         vz(iter+1) = vz(iter)+(uz(iter)/m+uhz(iter))*dt;
+%         z(iter+1) = z(iter)+vz(iter)*dt;
+%         
         % Update fuel mass
         mFuel = mFuel-mdot*dt*sum(abs([uxT(1),uyT(1),uzT(1)])); %calculate fuel loss based on number of times controls were turned on (mult. by dt=1s)
         m = mDry+mFuel;        
@@ -293,7 +305,6 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         cpustr = datestr(cpuT(iter)/3600/24, 'DD HH:MM:SS');
         simstr = datestr(t0/3600/24, 'DD HH:MM:SS');
         if dispIter
-            clc
             fprintf('Iteration %d\n',iter)  
             fprintf('--------------------------------\n')
             fprintf('Simulation time: %s\n',simstr) 
@@ -307,18 +318,18 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         end
 
         % Update time and iteration
-        t0 = t0+dt;
+        t0 = t0+T;
         iter = iter+1;
     end
     
     % Catch max time
-    if t0 > tmax,break,end
-end
+%    if t0 > tmax,break,end
+%end
 
 % Post MPC processing - fill last control
-ux = [ux,0];
-uy = [uy,0];
-uz = [uz,0];
+uxT = [uxT;0];
+uyT = [uyT;0];
+uzT = [uzT;0];
 
 % Final time
 t = 0:dt:t0;
@@ -329,7 +340,7 @@ figure(1)
 hold on
 p1 = plot3(x,y,z,'b','linewidth',2);
 p2 = plot3(x0,y0,z0,'k^','linewidth',2,'markersize',10);
-p4 = quiver3(x,y,z,-ux,-uy,-uz,1,'r','linewidth',2);
+p4 = quiver3(x,y,z,-uxT',-uyT',-uzT',1,'r','linewidth',2);
 p5 = PlotObstacle(xbmin,xbmax,ybmin,ybmax,zbmin,zbmax,'k');
 p6 = PlotObstacle(xlb,xub,ylb,yub,zlb,zub,'--k');
 hold off
@@ -347,7 +358,7 @@ view(-45,15)
 figure(2)
 subplot(3,3,1)
 hold on
-stairs(t,ux/umax,'-b','linewidth',2)
+stairs(t,uxT/umax,'-b','linewidth',2)
 plot([0 t0],[0 0],'--k','linewidth',2)
 axis([0 t0 -1.5 1.5])
 grid on
@@ -356,7 +367,7 @@ ylabel('ux [N]')
 
 subplot(3,3,4)
 hold on
-stairs(t,uy/umax,'-r','linewidth',2)
+stairs(t,uyT/umax,'-r','linewidth',2)
 plot([0 t0],[0 0],'--k','linewidth',2)
 axis([0 t0 -1.5 1.5])
 grid on
@@ -364,7 +375,7 @@ ylabel('uy [N]')
 
 subplot(3,3,7)
 hold on
-stairs(t,uz/umax,'-g','linewidth',2)
+stairs(t,uzT/umax,'-g','linewidth',2)
 plot([0 t0],[0 0],'--k','linewidth',2)
 axis([0 t0 -1.5 1.5])
 grid on
