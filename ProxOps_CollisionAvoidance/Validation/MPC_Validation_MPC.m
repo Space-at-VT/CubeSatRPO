@@ -29,16 +29,16 @@
 
 function RPO_MILP_MPC
 %% Inputs
-clc,close all
+clc,close all, clear all
 
 % Orbital State
 a = 10e6; %m
 
 % Relative Initial state
-% x0 = 0; %m
-% y0 = 10;
-% z0 = 0;
-vx0 = 0.05; %m/s
+x0 = 0; %m
+y0 = 7;
+z0 = 0;
+vx0 = 0; %m/s
 vy0 = 0;
 vz0 = 0;
 
@@ -78,12 +78,12 @@ zub = zbmax;
 zlb = zbmin;
 
 % Approach Target, center of proximity box
-xf = (xub+xlb)/2;
-yf = (yub+ylb)/2;
-zf = (zub+zlb)/2;
-x0 = (xub+xlb)/2;
-y0 = (yub+ylb)/2;
-z0 = (zub+zlb)/2;
+xf = 0;
+yf = -30;
+zf = 0;
+% xf = (xub+xlb)/2;
+% yf = (yub+ylb)/2;
+% zf = (zub+zlb)/2;
 
 % Add safety buffer, surrounding obstacle [m]
 xbmind = xbmin-d;
@@ -94,7 +94,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = 60;
+tmax = 50;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2
@@ -149,7 +149,7 @@ while  mFuel > 0  %computation will end when fuel mass is 0
         % the start of the simulation to approach target and when the target
         % temporarily leaves the proximity area and needs to return.
         case 'Approach' 
-            T = 12; %horizon time [s]
+            T = 40; %horizon time [s]
             dt = 1; %time step [s]
             t = t0:dt:t0+T; %total time trajectory is generated for 
 
@@ -190,8 +190,8 @@ while  mFuel > 0  %computation will end when fuel mass is 0
                 [xf,yf,zf],dt,m,Nsim,Ntotal);
             
             % Min time constraint
-            [A,b] = MinTime(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
-                [xf,yf,zf],dt,m,Nsim,Ntotal);
+%             [A,b] = MinTime(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
+%                 [xf,yf,zf],dt,m,Nsim,Ntotal);
             
             % Obstacle contraints
             for N = 1:NObj
@@ -201,36 +201,36 @@ while  mFuel > 0  %computation will end when fuel mass is 0
              
         % Hold - cubesat is contrained to remain in the proximity area and
         % has sole objective to minimize fuel.
-        case 'Hold'
-            T = 20;
-            dt = 1;
-            t = t0:dt:t0+T;
-
-            % Number of variables
-            Nsim = length(t)-1; %simulations
-            Nvar = 6*Nsim;      %positions & velocities
-            Nhcw = 3*Nsim;      %HCW accelerations
-            NU = 0;             %targeting- no target in Hold sequence
-            Nbi = 0;            %timing- no min time in Hold sequence
-            Ntotal = Nvar+Nhcw+NU+Nbi;     
-            
-            % Parameter bounds, lower & upper
-            lb = [zeros(Nvar,1);    %Control thrusts
-                -inf*ones(Nhcw,1)]; %HCW accelerations
-            
-            ub = [ones(Nvar,1);    %Control thrusts
-                inf*ones(Nhcw,1)]; %HCW accelerations
-            
-            % Function coefficients
-            f = [dt*ones(Nvar,1); %Control thrusts
-                zeros(Nhcw,1)];   %HCW accelerations
-            
-            % Integer constraints
-            intcon = 1:Nvar;
-            
-            % Proximity constraint (to stay within bounds)
-            [A,b] = Proximity(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
-                dt,m,Nsim,Ntotal,xlb,xub,ylb,yub,zlb,zub);
+%         case 'Hold'
+%             T = 20;
+%             dt = 1;
+%             t = t0:dt:t0+T;
+% 
+%             % Number of variables
+%             Nsim = length(t)-1; %simulations
+%             Nvar = 6*Nsim;      %positions & velocities
+%             Nhcw = 3*Nsim;      %HCW accelerations
+%             NU = 0;             %targeting- no target in Hold sequence
+%             Nbi = 0;            %timing- no min time in Hold sequence
+%             Ntotal = Nvar+Nhcw+NU+Nbi;     
+%             
+%             % Parameter bounds, lower & upper
+%             lb = [zeros(Nvar,1);    %Control thrusts
+%                 -inf*ones(Nhcw,1)]; %HCW accelerations
+%             
+%             ub = [ones(Nvar,1);    %Control thrusts
+%                 inf*ones(Nhcw,1)]; %HCW accelerations
+%             
+%             % Function coefficients
+%             f = [dt*ones(Nvar,1); %Control thrusts
+%                 zeros(Nhcw,1)];   %HCW accelerations
+%             
+%             % Integer constraints
+%             intcon = 1:Nvar;
+%             
+%             % Proximity constraint (to stay within bounds)
+%             [A,b] = Proximity(A,b,umax,[x(end),y(end),z(end)],[vx(end),vy(end),vz(end)],...
+%                 dt,m,Nsim,Ntotal,xlb,xub,ylb,yub,zlb,zub);
 
     end
 
@@ -326,6 +326,9 @@ uz = [uz,0];
 
 % Final time
 t = 0:dt:t0;
+
+save('Validation_Approach_T40.mat','t','x','y','z','uxT','uyT','uzT','mFuel','cpuT')
+
 
 %% Plots
 % Trajectory

@@ -94,7 +94,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = 4;
+tmax = 50;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2

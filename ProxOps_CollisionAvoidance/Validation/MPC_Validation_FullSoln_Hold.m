@@ -29,7 +29,7 @@
 
 function MPC_Validation_FullSoln
 %% Inputs
-close all
+clc, close all, clear all
 
 % Orbital State
 a = 10e6; %m
@@ -38,7 +38,7 @@ a = 10e6; %m
 % x0 = 0; %m
 % y0 = 10;
 % z0 = 0;
-vx0 = 0.05; %m/s
+vx0 = 0.1; %m/s
 vy0 = 0;
 vz0 = 0;
 
@@ -248,6 +248,7 @@ timeout = 0;
     % spent optimizing solution to maintain realtime capability
     options = optimoptions(@intlinprog,'Display','iter'); 
     [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+    fval
     
     %% Post process
     % During Hold sequence, if deputy leaves proximity bounds, phase will
@@ -335,7 +336,7 @@ uzT = [uzT;0];
 % Final time
 t = 0:dt:t0;
 
-save('test.mat','t','x','y','z','uxT','uyT','uzT')
+save('FullSoln_Hold.mat','t','x','y','z','uxT','uyT','uzT','fval','cpuT')
 
 %% Plots
 % Trajectory
