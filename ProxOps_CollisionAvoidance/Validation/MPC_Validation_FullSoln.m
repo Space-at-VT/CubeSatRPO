@@ -29,22 +29,22 @@
 
 function MPC_Validation_FullSoln
 %% Inputs
-clc,close all
+clc, close all, clear all
 
 % Orbital State
 a = 10e6; %m
 
 % Relative Initial state
 x0 = 0; %m
-y0 = 10;
+y0 = 7;
 z0 = 0;
 vx0 = 0; %m/s
 vy0 = 0;
 vz0 = 0;
 
 % Vehicle parameters
-vmax = 1;  %m/s
-umax = 1;  %N
+vmax = 0.5;  %m/s
+umax = 0.26;  %N
 mDry = 13;   %kg
 mFuel = 0.5; %kg
 I = 800;   %s
@@ -94,7 +94,7 @@ ybmaxd = ybmax+d;
 zbmaxd = zbmax+d;
 
 % Simulation time [s]
-tmax = 25;
+tmax = 4;
 
 % Mean motion and period
 mu = 3.986004418e14; %m^3s^2
@@ -239,7 +239,7 @@ timeout = 0;
         dt,m,n,Nsim,Ntotal);
      
     % Max velocity constraint
-%    [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
+    [A,b] = MaxVelocity(A,b,umax,[vx(end),vy(end),vz(end)],dt,m,Nsim,Ntotal,vmax);
     
        
     %% MILP Optimization
@@ -247,6 +247,7 @@ timeout = 0;
     % spent optimizing solution to maintain realtime capability
     options = optimoptions(@intlinprog,'Display','iter','MaxTime',60); 
     [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+    fval
     
     %% Post process
     % During Hold sequence, if deputy leaves proximity bounds, phase will
@@ -333,6 +334,9 @@ uzT = [uzT;0];
 
 % Final time
 t = 0:dt:t0;
+
+save('FullSoln_Approach.mat','t','x','y','z','uxT','uyT','uzT','fval','cpuT')
+
 
 %% Plots
 % Trajectory
