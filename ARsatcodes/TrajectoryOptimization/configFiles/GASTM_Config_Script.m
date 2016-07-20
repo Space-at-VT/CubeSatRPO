@@ -5,8 +5,8 @@ tol     = 1e-13; % tolerance for transcendental root finding
 safetyAltitude = 50e3;
 samples = 3;
 B = [zeros(3,3); eye(3)];
-umax = 0.1;
-umin = 0;
+umax = 0.075;
+umin = -0.075;
 
 % Valid descriptions are 'Classical'; 'Nonsingular'
 chiefOrbitDescription = 'Classical';
@@ -24,7 +24,7 @@ deputyOrbitDescriptionFinal = 'Cartesian';
 method = chiefOrbitDescription;
 switch method
     case 'Classical'
-        a = 6678e3;
+        a = 7000e3;
         ecc = 0.0;
         inc = 28*pi/180;
         raan = pi/4;
@@ -102,8 +102,8 @@ switch method
         RelFinalState = [da dth di dq1 dq2 dO]';
 end
 
-t0 = 0; numPeriod = 3; numSteps = 100; dt = 1;
-tf = 300;
+t0 = 0; numPeriod = 1; numSteps = 200; dt = 1;
+tf = 550;
 
 initStruct.descriptor = 'GimAlfriendSTM';
 initStruct.params = {Req,mu,J2,tol,safetyAltitude};

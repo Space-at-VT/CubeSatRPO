@@ -4,7 +4,7 @@ clear; close all; clc; asv; addPaths();
 % verify this though. Also, it needs comments for explanation, and should
 % be expanded to check more cases
 
-HCW_Config_Script();
+GASTM_Config_Script();
 
 mf = ConvexSFFManeuver(initStruct);
 mf.minimizeFuel();
@@ -20,14 +20,14 @@ inputStruct.states.statesq = {mf.Xq,meu.Xq,mec.Xq};
 inputStruct.controls.controls = {mf.U,meu.U,mec.U};
 inputStruct.controls.controlsq = {mf.Uq,meu.Uq,mec.Uq};
 inputStruct.times = {mf.T,meu.T,mec.T};
-inputStruct.id = {'hcw','hcw','hcw','.','.'};
+inputStruct.id = {'GA_STM','GA_STM','GA_STM','.','.'};
 inputStruct.lines.linestates = {'k-','b-','g-','k.','b.'};
 inputStruct.lines.linemods = {'linewidth','linewidth','linewidth','markersize','markersize'};
 inputStruct.lines.linesizes = [2,2,2,25,25];
 inputStruct.lines.linestatesq = {'r','r','r'};
 inputStruct.lines.linemodsq = {'linewidth','linewidth','linewidth'};
 inputStruct.lines.linesizesq = [2,2,2];
-inputStruct.legends = {'HCW Min Fuel','HCW Min Energy','HCW Min Energ Con','$X_0$','$X_f$','Min Fuel Thrust','Min Energy Thrust'};
+inputStruct.legends = {'GASTM Min Fuel','GASTM Min Energy','GASTM Min Energ Con','$X_0$','$X_f$','Min Fuel Thrust','Min Energy Thrust'};
 inputStruct.title = 'Relative Trajectory';
 inputStruct.labels = {'X, m','Y, m','Z, m'};
 inputStruct.bounds = 'tight';

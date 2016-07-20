@@ -59,15 +59,15 @@ t = linspace(t0,tf,N*numPeriod);
 % or XYZ differences
 
 % Cartesian
-% eccFactor = -n*(2+ecc)/(sqrt((1+ecc)*(1-ecc)^3));
-% x0 = 4000;
-% y0 = 4000;
-% z0 = 10000;
-% xd0 = 0;
-% yd0 = eccFactor*x0;
-% zd0 = 0;
+eccFactor = -n*(2+ecc)/(sqrt((1+ecc)*(1-ecc)^3));
+x0 = -6.133558779457103e+02;
+y0 = 10.516359778857586;
+z0 = 1.153615958865346e+04;
+xd0 = 0;
+yd0 = eccFactor*x0;
+zd0 = 0;
 % X0GA = [x0; xd0; y0; yd0; z0; zd0];
-% X0 = [x0; y0; z0; xd0; yd0; zd0];
+X0 = [x0; y0; z0; xd0; yd0; zd0];
 
 % Elements- COEs
 da = 0;
@@ -82,8 +82,9 @@ DepElemsInitNS =  COE_to_Nonsingular(DepElemsInit,tol);
 [DJ2Dep,DepOsc] = MeanToOsculatingElements(J2,DepElemsInitNS,Req,mu);
 deltaElems = DepOsc - ChiefOsc;
 X0GA = SigmaMatrix(J2,ChiefOsc,Req,mu)*deltaElems;
-% X0 = [x0; y0; z0; xd0; yd0; zd0];
-% x0 = X0(1); y0 = X0(3); z0 = X0(5);
+% [R0d,V0d] = oe2rv(DepElemsInit,mu,'r');
+% X0 = [(R0d-R0)/1000; (V0d-V0)/1000];
+% x0 = X0(1); y0 = X0(2); z0 = X0(3);
 
 % Elements- Nonsingular
 % da = -103.624;
@@ -108,7 +109,7 @@ for ii = 1:length(t)
     Xt(:,ii) = PhiJ2(:,:,ii)*X0GA;
 end
 options = odeset('RelTol',1e-12,'AbsTol',1e-15);
-% [t,Xl] = ode45(@LinearFormationFlyingEquations,t,X0,options,mu,a,ecc);
+[t,Xl] = ode45(@LinearFormationFlyingEquations,t,X0,options,mu,a,ecc);
 
 Xt = Xt';
 
@@ -120,9 +121,9 @@ figure(1)
 hold on
 grid on
 plot3(x,y,z,'k','LineWidth',2)
-% plot3(Xl(:,1),Xl(:,2),Xl(:,3),'ro','MarkerSize',6)
-% plot3(x0,y0,z0,'r.','MarkerSize',30)
-% plot3(x(end),y(end),z(end),'b.','MarkerSize',30)
+plot3(Xl(:,1),Xl(:,2),Xl(:,3),'ro','MarkerSize',6)
+plot3(x0,y0,z0,'r.','MarkerSize',30)
+plot3(x(end),y(end),z(end),'b.','MarkerSize',30)
 leg1 = legend('GA-STM','LERM','$\textbf{X}_0$','$\textbf{X}_f$','Location','Best');
 xl = xlabel('Radial, $x$, m');
 yl = ylabel('In-track, $y$, m');
@@ -131,28 +132,29 @@ title1 = title('Gim-Alfriend State Transition Matrix vs LERM');
 set([leg1 xl yl zl],'interpreter','latex','fontsize',12)
 set(title1,'interpreter','latex','fontsize',14)
 axis tight
+camva(8)
 
-% figure(4)
-% subplot(311)
-% hold on
-% grid on
-% plot(n/(2*pi).*t,x - Xl(:,1),'k','LineWidth',2)
-% axis tight
-% title1 = title('Relative Error Between GA-STM and LERM');
-% yl1 = ylabel('Radial, $e_x$, m');
-% % leg1 = legend('Deputy','Location','Best');
-% subplot(312)
-% hold on
-% grid on
-% plot(n/(2*pi).*t,y - Xl(:,2),'k','LineWidth',2)
-% axis tight
-% yl2 = ylabel('In-track, $e_y$, m');
-% subplot(313)
-% hold on
-% grid on
-% plot(n/(2*pi).*t,z - Xl(:,3),'k','LineWidth',2)
-% axis tight
-% xl = xlabel('Time, $n$-Orbits');
-% yl3 = ylabel('Cross-track, $e_z$, m');
-% set([xl yl1 yl2 yl3],'interpreter','latex','fontsize',10)
-% set(title1,'interpreter','latex','fontsize',14)
+figure(4)
+subplot(311)
+hold on
+grid on
+plot(n/(2*pi).*t,x - Xl(:,1),'k','LineWidth',2)
+axis tight
+title1 = title('Relative Error Between GA-STM and LERM');
+yl1 = ylabel('Radial, $e_x$, m');
+% leg1 = legend('Deputy','Location','Best');
+subplot(312)
+hold on
+grid on
+plot(n/(2*pi).*t,y - Xl(:,2),'k','LineWidth',2)
+axis tight
+yl2 = ylabel('In-track, $e_y$, m');
+subplot(313)
+hold on
+grid on
+plot(n/(2*pi).*t,z - Xl(:,3),'k','LineWidth',2)
+axis tight
+xl = xlabel('Time, $n$-Orbits');
+yl3 = ylabel('Cross-track, $e_z$, m');
+set([xl yl1 yl2 yl3],'interpreter','latex','fontsize',10)
+set(title1,'interpreter','latex','fontsize',14)

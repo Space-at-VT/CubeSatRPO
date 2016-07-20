@@ -4,7 +4,7 @@ clear; close all; clc; asv;
 % Date:   29 March 2016
 %
 
-parameterization = 'RV';
+parameterization = 'OE';
 
 % Parameters
 mu = 3.986e5;
@@ -21,7 +21,7 @@ f0 = 0*pi/180;
 kepElems = [a ecc inc raan argPer f0]';
 safetyAltitude = 75;
 % Total time of flight
-numPeriod = 1;
+numPeriod = 5;
 t0 = 0;
 
 % Initialization structure for orbit class
