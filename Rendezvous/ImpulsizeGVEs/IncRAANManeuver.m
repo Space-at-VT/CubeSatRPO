@@ -33,8 +33,8 @@ deg2rad = pi/180;
 
 % Setting up vectorized parameters
 init_alt = linspace(300,5000,n);        % [km]          - Initial Orbit Altitude
-delta_OM_d = linspace(0,4,n);           % [deg]         - Change in RAAN
-delta_i_d = linspace(0,4,n);            % [km]          - Inclination Change
+delta_OM_d = linspace(0,3,n);           % [deg]         - Change in RAAN
+delta_i_d = linspace(0,3,n);            % [km]          - Inclination Change
 inc_init_d = inc_target_d - delta_i_d;  % [deg]         - Initial orbit inclination
 R_i = init_alt + R_e;                   % [km]          - Initial Orbit SMA
 period = 2*pi*sqrt(R_i.^3/mu);          % [sec]         - Final Orbital period
@@ -57,7 +57,7 @@ method = {'Inclination Only Maneuver','RAAN Only Maneuver','Combined Maneuver'};
 %%% Building the design space
 
 % Equation for inclination/RAAN change
-Dv = @(del_i,del_OM,r,h) (h./r).*(del_i.^2 + (del_OM.^2).*sin(inc_target_r*ones(size(del_i)) - del_i).^2).^(0.5);
+Dv = @(del_i,del_OM,r,h) (h./r).*((del_i.^2 + (del_OM.^2).*sin(inc_target_r*ones(size(del_i)) - del_i).^2).^(0.5));
 
 % Build matrices for orbital element changes
 dIncMat = repmat(delta_i_r,n,1);
@@ -119,7 +119,7 @@ for iter=1:length(method)
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Inclination Change, $\delta i$, [deg]');
+            yl = ylabel('Inclination Change $\delta i$, [deg]');
             set([title1 xl yl],'interpreter','latex','fontsize',12)
             axis tight
             hold off
@@ -161,7 +161,7 @@ for iter=1:length(method)
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('RAAN Change, $\delta \Omega$, [deg]');
+            yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
             set([title1 xl yl],'interpreter','latex','fontsize',12)
             axis tight
             hold off
@@ -172,6 +172,7 @@ for iter=1:length(method)
             
             %%% TODO: Figure this out
             R_i = Discrete_Radius;
+            h_i = (mu*R_i).^(0.5); 
             period = 2*pi*sqrt(R_i.^3/mu);
             Dv_Req = zeros(n,n,length(R_i));
             for ii=1:length(R_i)
@@ -213,9 +214,9 @@ for iter=1:length(method)
                 surf(delta_i_d,delta_OM_d,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', R = ',num2str(R_i(ii))));
-                xl = xlabel('Inclination Change, $\delta i$, [deg]');
-                yl = ylabel('RAAN Change, $\delta \Omega$, [deg]');
+                title1 = title(strcat(method(iter), ', $R=',num2str(R_i(ii)),'$'));
+                xl = xlabel('Inclination Change $\delta i$, [deg]');
+                yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
                 axis tight
                 hold off
