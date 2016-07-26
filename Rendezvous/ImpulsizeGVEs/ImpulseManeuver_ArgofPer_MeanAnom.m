@@ -26,21 +26,22 @@ spacecraft = struct(f1,v1,f2,v2,f3,v3,f4,v4,f5,v5);
 R_e = 6378.137;                         % [km]          - Radius of Earth
 mu = 398600;                            % [km^3/s^2]    - Grav. Parameter
 g = 9.81/1000;                          % [km/s^2]      - Gravity
-num_pts = 200;                          %               - Num. of Plot points
+num_pts = 300;                          %               - Num. of Plot points
 m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
-ecc = 0;                                %               - Eccentricity
+ecc = 0.5;                                %               - Eccentricity
 deg2rad = pi/180;
 
 % Setting up vectorized parameters
 init_alt = linspace(300,5000,num_pts);        % [km]          - Initial Orbit Altitude
-delta_om_d = linspace(0,10,num_pts);                         %               - Change in Arg. of Periapsis
-delta_M_d = linspace(0,10,num_pts);           % [km]          - Mean anomaly Change
+delta_om_d = linspace(0,5,num_pts);                         %               - Change in Arg. of Periapsis
+delta_M_d = linspace(0,5,num_pts);           % [km]          - Mean anomaly Change
 R_i = init_alt + R_e;                   % [km]          - Initial Orbit SMA
 period = 2*pi*sqrt(R_i.^3/mu);          % [sec]         - Final Orbital period
 inc = 51.6*deg2rad;
 delta_OM_r = zeros(num_pts,num_pts);
 
-n = @(a) (mu./a.^3).^0.5;
+% Intermediate parameters for easier reading
+n = @(a) (mu./a.^3).^0.5;               %               - Mean motion
 eta = (1-ecc.^2).^0.5;
 
 % Separate parameters for combined maneuver, plot surface of di vs. dOM on
@@ -52,14 +53,16 @@ delta_M_r = delta_M_d*deg2rad;
 delta_om_r = delta_om_d*deg2rad;
 
 % Cases to consider
-method = {'Arg. of Perigee Only Maneuver','Mean Anomaly Only Maneuver','Combined Maneuver'};
+method = {'Arg. of Perigee Maneuver','Mean Anomaly Maneuver','Combined Maneuver'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Building the design space
 
-% Equation for inclination/RAAN change
-Dvp = @(del_om,del_M,a,e) -(n(a).*a/4).*((((1+e).^2)./eta).*(del_om) + del_M);
-Dva = @(del_om,del_M,a,e) (n(a).*a/4).*((((1-e).^2)./eta).*(del_om) + del_M);
+% Equation for Arg. of Perigee/Mean Anomaly change
+Dvp = @(del_om,del_M,a,e) -(n(a).*a/4).*((((1+e).^2)./eta).*(del_om + ...
+    delta_OM_r*cos(inc)) + del_M);
+Dva = @(del_om,del_M,a,e) (n(a).*a/4).*((((1-e).^2)./eta).*(del_om + ...
+    delta_OM_r*cos(inc)) + del_M);
 
 % Build matrices for orbital element changes
 domMat = repmat(delta_om_r,num_pts,1);
@@ -69,7 +72,7 @@ dMMat = repmat(delta_M_r',1,num_pts);
 Dv_Req = zeros(num_pts,num_pts,num_pts);
 tic
 for ii=1:num_pts
-    Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),0))+abs(Dva(domMat,dMMat,R_i(ii),0));
+    Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),ecc))+abs(Dva(domMat,dMMat,R_i(ii),ecc));
 end
 toc
 
@@ -85,7 +88,7 @@ for iter=1:length(method)
     % Switch on maneuver case
     maneuver_case  = method{iter};
     switch maneuver_case
-        case 'Arg. of Perigee Only Maneuver'
+        case 'Arg. of Perigee Maneuver'
             display(method(iter))
             
             % Equation for thrust
@@ -127,7 +130,7 @@ for iter=1:length(method)
             hold off
           
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        case 'Mean Anomaly Only Maneuver'
+        case 'Mean Anomaly Maneuver'
             display(method(iter))
             
             % Equation for thrust
@@ -178,7 +181,8 @@ for iter=1:length(method)
             period = 2*pi*sqrt(R_i.^3/mu);
             Dv_Req = zeros(num_pts,num_pts,length(R_i));
             for ii=1:length(R_i)
-                Dv_Req(:,:,ii) = Dv(dIncMat,dMMat,R_i(ii),h_i(ii));
+                Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),ecc)) + ...
+                    abs(Dva(domMat,dMMat,R_i(ii),ecc));
             end
             
             % Equations for thrust
@@ -213,12 +217,12 @@ for iter=1:length(method)
                 figure(iter+ii-1)
                 hold on
                 grid on
-                surf(delta_i_d,delta_OM_d,Mass_percent(:,:,ii),'EdgeColor','None')
+                surf(delta_om_d,delta_M_d,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
                 title1 = title(strcat(method(iter), ', $R=',num2str(R_i(ii)),'$'));
-                xl = xlabel('Inclination Change $\delta i$, [deg]');
-                yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
+                xl = xlabel('Arg. of Perigee Change $\delta \omega$, [deg]');
+                yl = ylabel('Mean Anomaly Change $\delta M$, [deg]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
                 axis tight
                 hold off

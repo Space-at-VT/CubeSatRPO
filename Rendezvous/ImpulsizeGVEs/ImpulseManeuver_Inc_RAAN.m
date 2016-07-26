@@ -49,7 +49,7 @@ delta_i_r = delta_i_d*deg2rad;
 delta_OM_r = delta_OM_d*deg2rad;
 
 % Cases to consider
-method = {'Inclination Only Maneuver','RAAN Only Maneuver','Combined Maneuver'};
+method = {'Inclination Maneuver','RAAN Maneuver','Combined Maneuver'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Building the design space
@@ -81,7 +81,7 @@ for iter=1:length(method)
     % Switch on maneuver case
     maneuver_case  = method{iter};
     switch maneuver_case
-        case 'Inclination Only Maneuver'
+        case 'Inclination Maneuver'
             display(method(iter))
             
             % Equation for thrust
@@ -123,7 +123,7 @@ for iter=1:length(method)
             hold off
           
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        case 'RAAN Only Maneuver'
+        case 'RAAN Maneuver'
             display(method(iter))
             
             % Equation for thrust
