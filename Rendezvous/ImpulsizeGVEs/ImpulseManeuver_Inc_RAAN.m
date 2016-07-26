@@ -212,6 +212,7 @@ for iter=1:length(method)
                 hold on
                 grid on
                 surf(delta_i_d,delta_OM_d,Mass_percent(:,:,ii),'EdgeColor','None')
+%                 colormap(gray)
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
                 title1 = title(strcat(method(iter), ', $R=',num2str(R_i(ii)),'$'));
