@@ -26,16 +26,15 @@ spacecraft = struct(f1,v1,f2,v2,f3,v3,f4,v4,f5,v5);
 R_e = 6378.137;                         % [km]          - Radius of Earth
 mu = 398600;                            % [km^3/s^2]    - Grav. Parameter
 g = 9.81/1000;                          % [km/s^2]      - Gravity
-n = 300;                               %               - Num. of Plot points
+num_pts = 300;                          %               - Num. of Plot points
 m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
 inc_target_d = 51.6; %ISS inc           % [deg]         - Target orbit inclination
 deg2rad = pi/180;
 
 % Setting up vectorized parameters
-init_alt = linspace(300,5000,n);        % [km]          - Initial Orbit Altitude
-delta_OM_d = linspace(0,3,n);           % [deg]         - Change in RAAN
-delta_i_d = linspace(0,3,n);            % [km]          - Inclination Change
-inc_init_d = inc_target_d - delta_i_d;  % [deg]         - Initial orbit inclination
+init_alt = linspace(300,5000,num_pts);  % [km]          - Initial Orbit Altitude
+delta_OM_d = linspace(0,3,num_pts);     % [deg]         - Change in RAAN
+delta_i_d = linspace(0,3,num_pts);      % [km]          - Inclination Change
 R_i = init_alt + R_e;                   % [km]          - Initial Orbit SMA
 period = 2*pi*sqrt(R_i.^3/mu);          % [sec]         - Final Orbital period
 h_i = (mu*R_i).^(0.5);                  % [km]          - Orbit angular momentum
@@ -46,7 +45,6 @@ Discrete_Radius = [6800 7500 10000];
 
 % Convert to radians
 inc_target_r = inc_target_d*deg2rad;
-inc_init_r = inc_init_d*deg2rad;
 delta_i_r = delta_i_d*deg2rad;     
 delta_OM_r = delta_OM_d*deg2rad;
 
@@ -60,13 +58,13 @@ method = {'Inclination Only Maneuver','RAAN Only Maneuver','Combined Maneuver'};
 Dv = @(del_i,del_OM,r,h) (h./r).*((del_i.^2 + (del_OM.^2).*sin(inc_target_r*ones(size(del_i)) - del_i).^2).^(0.5));
 
 % Build matrices for orbital element changes
-dIncMat = repmat(delta_i_r,n,1);
-dRAANMat = repmat(delta_OM_r',1,n);
+dIncMat = repmat(delta_i_r,num_pts,1);
+dRAANMat = repmat(delta_OM_r',1,num_pts);
 
 % Memory allocation
-Dv_Req = zeros(n,n,n);
+Dv_Req = zeros(num_pts,num_pts,num_pts);
 tic
-for ii=1:n
+for ii=1:num_pts
     Dv_Req(:,:,ii) = Dv(dIncMat,dRAANMat,R_i(ii),h_i(ii));
 end
 toc
@@ -94,7 +92,7 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(R_i),n);
+            Mass_percent = zeros(length(R_i),num_pts);
             Dv_total = Dv_Req(1,:,:);
             
             % Loop calculates mass percent for each radius
@@ -136,7 +134,7 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(init_alt),n);
+            Mass_percent = zeros(length(init_alt),num_pts);
             Dv_total = Dv_Req(:,1,:);
             
             % Loop calculates mass percent for each radius
@@ -174,7 +172,7 @@ for iter=1:length(method)
             R_i = Discrete_Radius;
             h_i = (mu*R_i).^(0.5); 
             period = 2*pi*sqrt(R_i.^3/mu);
-            Dv_Req = zeros(n,n,length(R_i));
+            Dv_Req = zeros(num_pts,num_pts,length(R_i));
             for ii=1:length(R_i)
                 Dv_Req(:,:,ii) = Dv(dIncMat,dRAANMat,R_i(ii),h_i(ii));
             end
@@ -187,7 +185,7 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(init_alt),n);
+            Mass_percent = zeros(length(init_alt),num_pts);
             Dv_total = Dv_Req;
             
             % Loop calculates mass percent for each radius
@@ -195,8 +193,8 @@ for iter=1:length(method)
                 
                 % Delta V required cannot exceed Delta V available
                 index = Dv_total(:,:,ii)>=Dv_avail(iter);
-                for kk=1:n
-                    for jj=1:n
+                for kk=1:num_pts
+                    for jj=1:num_pts
                         if Dv_total(kk,jj,ii)>=Dv_avail(ii)
                             Dv_total(kk,jj,ii) = NaN;
                         end
