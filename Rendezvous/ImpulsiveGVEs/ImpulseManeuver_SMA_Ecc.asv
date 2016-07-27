@@ -36,8 +36,7 @@ init_alt = linspace(300,5000,num_pts);  % [km]          - Initial Orbit Altitude
 delta_ecc_d = linspace(0,5,num_pts);    %               - Change in Ecc
 delta_SMA_d = linspace(0,5,num_pts);    % [km]          - SMA Change
 R_i = init_alt + R_e;                   % [km]          - Initial Orbit SMA
-SMA_i = R_i/(1-ecc);
-period = 2*pi*sqrt(SMA_i.^3/mu);          % [sec]         - Final Orbital period
+period = 2*pi*sqrt(R_i.^3/mu);          % [sec]         - Final Orbital period
 
 % Intermediate parameters for easier reading
 n = @(a) (mu./a.^3).^0.5;               %               - Mean motion
@@ -48,8 +47,8 @@ eta = (1-ecc.^2).^0.5;
 Discrete_Radius = [6800 7500 10000];
 
 % Convert to radians
-delta_SMA_r = delta_SMA_d*deg2rad;     
-delta_ecc_r = delta_ecc_d*deg2rad;
+delta_M_r = delta_SMA_d*deg2rad;     
+delta_om_r = delta_ecc_d*deg2rad;
 
 % Cases to consider
 method = {'Arg. of Perigee Maneuver','Mean Anomaly Maneuver','Combined Maneuver'};
@@ -58,18 +57,19 @@ method = {'Arg. of Perigee Maneuver','Mean Anomaly Maneuver','Combined Maneuver'
 %%% Building the design space
 
 % Equation for Arg. of Perigee/Mean Anomaly change
-Dvp = @(del_a,del_ecc,a,ecc) ((n(a).*a.*eta)/4).*((del_a./a + del_ecc./(1+ecc)));
-Dva = @(del_a,del_ecc,a,ecc) ((n(a).*a.*eta)/4).*((del_a./a - del_ecc./(1-ecc)));
+Dvp = @(del_om,del_M,a,e) (n*;
+Dva = @(del_om,del_M,a,e) (n(a).*a/4).*((((1-e).^2)./eta).*(del_om + ...
+    delta_OM_r*cos(inc)) + del_M);
 
 % Build matrices for orbital element changes
-deccMat = repmat(delta_ecc_r,num_pts,1);
-dSMAMat = repmat(delta_SMA_r',1,num_pts);
+domMat = repmat(delta_om_r,num_pts,1);
+dMMat = repmat(delta_M_r',1,num_pts);
 
 % Memory allocation
 Dv_Req = zeros(num_pts,num_pts,num_pts);
 tic
 for ii=1:num_pts
-    Dv_Req(:,:,ii) = abs(Dvp(deccMat,dSMAMat,SMA_i(ii),ecc))+abs(Dva(deccMat,dSMAMat,SMA_i(ii),ecc));
+    Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),ecc))+abs(Dva(domMat,dMMat,R_i(ii),ecc));
 end
 toc
 
@@ -96,11 +96,11 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(SMA_i),num_pts);
+            Mass_percent = zeros(length(R_i),num_pts);
             Dv_total = Dv_Req(1,:,:);
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(SMA_i)
+            for ii=1:length(R_i)
                 
                 % Total DeltaV required cannot exceed DeltaV available
                 index = Dv_total(1,:,ii)>=Dv_avail(iter);
@@ -116,7 +116,7 @@ for iter=1:length(method)
             figure(iter)
             hold on
             grid on
-            surf(SMA_i,delta_ecc_d,Mass_percent,'EdgeColor','None')
+            surf(R_i,delta_ecc_d,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
@@ -158,7 +158,7 @@ for iter=1:length(method)
             figure(iter)
             hold on
             grid on
-            surf(SMA_i,delta_SMA_d,Mass_percent,'EdgeColor','None')
+            surf(R_i,delta_SMA_d,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
@@ -178,8 +178,8 @@ for iter=1:length(method)
             period = 2*pi*sqrt(R_i.^3/mu);
             Dv_Req = zeros(num_pts,num_pts,length(R_i));
             for ii=1:length(R_i)
-                Dv_Req(:,:,ii) = abs(Dvp(domMat,dSMAMat,R_i(ii),ecc)) + ...
-                    abs(Dva(domMat,dSMAMat,R_i(ii),ecc));
+                Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),ecc)) + ...
+                    abs(Dva(domMat,dMMat,R_i(ii),ecc));
             end
             
             % Equations for thrust
