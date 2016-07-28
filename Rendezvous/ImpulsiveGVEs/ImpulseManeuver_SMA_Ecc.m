@@ -28,48 +28,45 @@ mu = 398600;                            % [km^3/s^2]    - Grav. Parameter
 g = 9.81/1000;                          % [km/s^2]      - Gravity
 num_pts = 300;                          %               - Num. of Plot points
 m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
-ecc = 0.5;                              %               - Eccentricity
+ecc = 0;                              %               - Eccentricity
 deg2rad = pi/180;
 
 % Setting up vectorized parameters
 init_alt = linspace(300,5000,num_pts);  % [km]          - Initial Orbit Altitude
-delta_ecc_d = linspace(0,5,num_pts);    %               - Change in Ecc
-delta_SMA_d = linspace(0,5,num_pts);    % [km]          - SMA Change
-R_i = init_alt + R_e;                   % [km]          - Initial Orbit SMA
-SMA_i = R_i/(1-ecc);
+delta_ecc = linspace(0,0.6-ecc,num_pts);    %               - Change in Ecc
+delta_SMA = linspace(0,1000,num_pts);    % [km]          - SMA Change
+R_p = init_alt + R_e;                   % [km]          - Initial Orbit 
+SMA_i = R_p/(1-ecc);
 period = 2*pi*sqrt(SMA_i.^3/mu);          % [sec]         - Final Orbital period
 
 % Intermediate parameters for easier reading
-n = @(a) (mu./a.^3).^0.5;               %               - Mean motion
-eta = (1-ecc.^2).^0.5;
+n = sqrt(mu./SMA_i.^3);               %               - Mean motion
+eta = (1-ecc^2)^0.5;
 
 % Separate parameters for combined maneuver, plot surface of di vs. dOM on
 % a certain number of discrete orbit radiuses 
 Discrete_Radius = [6800 7500 10000];
 
-% Convert to radians
-delta_SMA_r = delta_SMA_d*deg2rad;     
-delta_ecc_r = delta_ecc_d*deg2rad;
-
 % Cases to consider
-method = {'Arg. of Perigee Maneuver','Mean Anomaly Maneuver','Combined Maneuver'};
+method = {'Semi-Major Axis Maneuver','Eccentricity Maneuver','Combined Maneuver'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Building the design space
 
 % Equation for Arg. of Perigee/Mean Anomaly change
-Dvp = @(del_a,del_ecc,a,ecc) ((n(a).*a.*eta)/4).*((del_a./a + del_ecc./(1+ecc)));
-Dva = @(del_a,del_ecc,a,ecc) ((n(a).*a.*eta)/4).*((del_a./a - del_ecc./(1-ecc)));
+Dvp = @(del_a,del_ecc,a,nn,ecc) ((nn.*a.*eta)/4).*((del_a./a + del_ecc./(1+ecc)));
+Dva = @(del_a,del_ecc,a,nn,ecc) ((nn.*a.*eta)/4).*((del_a./a - del_ecc./(1-ecc)));
 
 % Build matrices for orbital element changes
-deccMat = repmat(delta_ecc_r,num_pts,1);
-dSMAMat = repmat(delta_SMA_r',1,num_pts);
+dSMAMat = repmat(delta_SMA,num_pts,1);
+deccMat = repmat(delta_ecc',1,num_pts);
 
 % Memory allocation
 Dv_Req = zeros(num_pts,num_pts,num_pts);
 tic
 for ii=1:num_pts
-    Dv_Req(:,:,ii) = abs(Dvp(deccMat,dSMAMat,SMA_i(ii),ecc))+abs(Dva(deccMat,dSMAMat,SMA_i(ii),ecc));
+    Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc))+...
+        abs(Dva(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc));
 end
 toc
 
@@ -85,7 +82,7 @@ for iter=1:length(method)
     % Switch on maneuver case
     maneuver_case  = method{iter};
     switch maneuver_case
-        case 'Arg. of Perigee Maneuver'
+        case 'Semi-Major Axis Maneuver'
             display(method(iter))
             
             % Equation for thrust
@@ -96,11 +93,11 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(SMA_i),num_pts);
+            Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(1,:,:);
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(SMA_i)
+            for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
                 index = Dv_total(1,:,ii)>=Dv_avail(iter);
@@ -116,18 +113,18 @@ for iter=1:length(method)
             figure(iter)
             hold on
             grid on
-            surf(SMA_i,delta_ecc_d,Mass_percent,'EdgeColor','None')
+            surf(SMA_i,delta_SMA,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Arg. of Perigee Change $\delta \omega$, [deg]');
+            yl = ylabel('SMA Change $\delta a$, [km]');
             set([title1 xl yl],'interpreter','latex','fontsize',12)
             axis tight
             hold off
           
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        case 'Mean Anomaly Maneuver'
+        case 'Eccentricity Maneuver'
             display(method(iter))
             
             % Equation for thrust
@@ -138,11 +135,11 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(init_alt),num_pts);
+            Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(:,1,:);
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(init_alt)
+            for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
                 index = Dv_total(:,1,ii)>=Dv_avail(iter);
@@ -158,12 +155,12 @@ for iter=1:length(method)
             figure(iter)
             hold on
             grid on
-            surf(SMA_i,delta_SMA_d,Mass_percent,'EdgeColor','None')
+            surf(SMA_i,delta_ecc,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Mean Anomaly Change $\delta M$, [deg]');
+            yl = ylabel('Eccentricity Change');
             set([title1 xl yl],'interpreter','latex','fontsize',12)
             axis tight
             hold off
@@ -173,13 +170,13 @@ for iter=1:length(method)
             display(method(iter))
             
             %%% TODO: Figure this out
-            R_i = Discrete_Radius;
-            h_i = (mu*R_i).^(0.5); 
-            period = 2*pi*sqrt(R_i.^3/mu);
-            Dv_Req = zeros(num_pts,num_pts,length(R_i));
-            for ii=1:length(R_i)
-                Dv_Req(:,:,ii) = abs(Dvp(domMat,dSMAMat,R_i(ii),ecc)) + ...
-                    abs(Dva(domMat,dSMAMat,R_i(ii),ecc));
+            SMA_i = Discrete_Radius/(1-ecc);
+            n = (mu./SMA_i.^3).^0.5;
+            period = 2*pi*sqrt(SMA_i.^3/mu);
+            Dv_Req = zeros(num_pts,num_pts,length(SMA_i));
+            for ii=1:length(SMA_i)
+                Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc))...
+                    +abs(Dva(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc));
             end
             
             % Equations for thrust
@@ -190,11 +187,11 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(init_alt),num_pts);
+            Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req;
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(R_i)
+            for ii=1:length(SMA_i)
                 
                 % Delta V required cannot exceed Delta V available
                 index = Dv_total(:,:,ii)>=Dv_avail(iter);
@@ -214,10 +211,10 @@ for iter=1:length(method)
                 figure(iter+ii-1)
                 hold on
                 grid on
-                surf(delta_ecc_d,delta_SMA_d,Mass_percent(:,:,ii),'EdgeColor','None')
+                surf(delta_ecc,delta_SMA,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $R=',num2str(R_i(ii)),'$'));
+                title1 = title(strcat(method(iter), ', $R=',num2str(SMA_i(ii)),'$'));
                 xl = xlabel('Arg. of Perigee Change $\delta \omega$, [deg]');
                 yl = ylabel('Mean Anomaly Change $\delta M$, [deg]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
