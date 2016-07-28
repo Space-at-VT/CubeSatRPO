@@ -28,7 +28,7 @@ mu = 398600;                            % [km^3/s^2]    - Grav. Parameter
 g = 9.81/1000;                          % [km/s^2]      - Gravity
 num_pts = 300;                          %               - Num. of Plot points
 m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
-ecc = 0.5;                                %               - Eccentricity
+ecc = 0.3;                                %               - Eccentricity
 deg2rad = pi/180;
 
 % Setting up vectorized parameters

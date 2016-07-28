@@ -29,7 +29,6 @@ g = 9.81/1000;                          % [km/s^2]      - Gravity
 num_pts = 300;                          %               - Num. of Plot points
 m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
 ecc = 0;                              %               - Eccentricity
-deg2rad = pi/180;
 
 % Setting up vectorized parameters
 init_alt = linspace(300,5000,num_pts);  % [km]          - Initial Orbit Altitude
@@ -41,7 +40,7 @@ period = 2*pi*sqrt(SMA_i.^3/mu);          % [sec]         - Final Orbital period
 
 % Intermediate parameters for easier reading
 n = sqrt(mu./SMA_i.^3);               %               - Mean motion
-eta = (1-ecc^2)^0.5;
+eta = sqrt(1-ecc^2);
 
 % Separate parameters for combined maneuver, plot surface of di vs. dOM on
 % a certain number of discrete orbit radiuses 
@@ -118,7 +117,7 @@ for iter=1:length(method)
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('SMA Change $\delta a$, [km]');
+            yl = ylabel('Semi-Major Axis Change $\delta a$, [km]');
             set([title1 xl yl],'interpreter','latex','fontsize',12)
             axis tight
             hold off
@@ -160,7 +159,7 @@ for iter=1:length(method)
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Eccentricity Change');
+            yl = ylabel('Eccentricity Change $\delta e$');
             set([title1 xl yl],'interpreter','latex','fontsize',12)
             axis tight
             hold off
@@ -175,8 +174,8 @@ for iter=1:length(method)
             period = 2*pi*sqrt(SMA_i.^3/mu);
             Dv_Req = zeros(num_pts,num_pts,length(SMA_i));
             for ii=1:length(SMA_i)
-                Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc))...
-                    +abs(Dva(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc));
+                Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc))+...
+                    abs(Dva(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc));
             end
             
             % Equations for thrust
@@ -211,12 +210,12 @@ for iter=1:length(method)
                 figure(iter+ii-1)
                 hold on
                 grid on
-                surf(delta_ecc,delta_SMA,Mass_percent(:,:,ii),'EdgeColor','None')
+                surf(delta_SMA,delta_ecc,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
                 title1 = title(strcat(method(iter), ', $R=',num2str(SMA_i(ii)),'$'));
-                xl = xlabel('Arg. of Perigee Change $\delta \omega$, [deg]');
-                yl = ylabel('Mean Anomaly Change $\delta M$, [deg]');
+                xl = xlabel('Eccentricity Change $\delta e$');
+                yl = ylabel('Semi-Major Axis Change $\delta a$, [km]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
                 axis tight
                 hold off
