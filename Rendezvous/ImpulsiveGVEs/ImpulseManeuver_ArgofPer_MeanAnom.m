@@ -72,7 +72,8 @@ dMMat = repmat(delta_M_r',1,num_pts);
 Dv_Req = zeros(num_pts,num_pts,num_pts);
 tic
 for ii=1:num_pts
-    Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),ecc))+abs(Dva(domMat,dMMat,R_i(ii),ecc));
+    Dv_Req(:,:,ii) = abs(Dvp(domMat,dMMat,R_i(ii),ecc))+...
+        abs(Dva(domMat,dMMat,R_i(ii),ecc));
 end
 toc
 
@@ -99,11 +100,11 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(R_i),num_pts);
+            Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(1,:,:);
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(R_i)
+            for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
                 index = Dv_total(1,:,ii)>=Dv_avail(iter);
@@ -141,11 +142,11 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(init_alt),num_pts);
+            Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(:,1,:);
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(init_alt)
+            for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
                 index = Dv_total(:,1,ii)>=Dv_avail(iter);
@@ -193,7 +194,7 @@ for iter=1:length(method)
             Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
-            Mass_percent = zeros(length(init_alt),num_pts);
+            Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req;
             
             % Loop calculates mass percent for each radius
