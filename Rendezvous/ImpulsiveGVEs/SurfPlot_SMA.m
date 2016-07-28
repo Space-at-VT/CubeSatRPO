@@ -30,7 +30,7 @@ m_prop_nom = 1.5;               % [kg]          - Nominal Propellant Mass
 
 % Setting up vectorized parameters
 alt = linspace(300,1500,n);     % [km]          - Orbit Altitude
-DeltaSMA = linspace(0,7,n);  % [km]          - Semi-Major Axis Change
+DeltaSMA = linspace(0,1000,n);  % [km]          - Semi-Major Axis Change
 R_f = alt+r_E;                  % [km]          - Final Orbit Radius
 period = 2*pi*sqrt(R_f.^3/mu);
 
@@ -60,7 +60,7 @@ Dv_Req(R_i <=r_E+200)=NaN;
 Dv_tot = zeros(1,length(spacecraft));
 Tburn = zeros(1,length(spacecraft));
 a_thrusti = zeros(1,length(spacecraft));
-for ii=1:2%length(spacecraft)
+for ii=1:length(spacecraft)
     % Equations for continuous thrust
     m_dot = spacecraft(ii).T_nom/(g*1000*-spacecraft(ii).I_sp);
     a_thrusti(ii) = spacecraft(ii).T_nom/spacecraft(ii).M_total;
