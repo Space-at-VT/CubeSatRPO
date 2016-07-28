@@ -1,5 +1,9 @@
-%% Impulsive SMA and/or Eccentricity Maneuver
+%%% Impulsive SMA and/or Eccentricity Maneuver
 % Author: Dylan Thomas
+
+% Equations for Delta V of maneuvers are derived from Gauss' Variational
+% Equations as shown in Schaub and Alfriend's "Impulsive Feedback to
+% Establish Specific Mean Orbital Elements of Spacecraft Formations", 2001
 clearvars; clc; delete('*.asv');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,39 +24,44 @@ v5 = {4*2.79};  % [N]
 spacecraft = struct(f1,v1,f2,v2,f3,v3,f4,v4,f5,v5);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% Setting up problem constants, etc.
+%%% Setting up problem
 
-% Parameter Inputs, constants
-R_e = 6378.137;                         % [km]          - Radius of Earth
-mu = 398600;                            % [km^3/s^2]    - Grav. Parameter
-g = 9.81/1000;                          % [km/s^2]      - Gravity
-num_pts = 300;                          %               - Num. of Plot points
-m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
-ecc = 0;                              %               - Eccentricity
+% Parameter Inputs, constants across all codes
+R_eq = 6378.137;                        % [km]          - Equatorial Radius of Earth
+mu = 398600;                            % [km^3/s^2]    - Gravitational Parameter of Earth
+g = 9.81/1000;                          % [km/s^2]      - Acceleration due to Gravity
+nominalPropMass = 1.5;                  % [kg]          - Nominal Propellant Mass
+num_pts = 300;                          %               - Num. of points
 
 % Setting up vectorized parameters
+ecc = 0;                                %               - Orbit Eccentricity 
 init_alt = linspace(300,5000,num_pts);  % [km]          - Initial Orbit Altitude
-delta_ecc = linspace(0,0.6-ecc,num_pts);    %               - Change in Ecc
-delta_SMA = linspace(0,1000,num_pts);    % [km]          - SMA Change
-R_p = init_alt + R_e;                   % [km]          - Initial Orbit 
-SMA_i = R_p/(1-ecc);
-period = 2*pi*sqrt(SMA_i.^3/mu);          % [sec]         - Final Orbital period
+R_p = init_alt + R_eq;                  % [km]          - Initial Orbit Perigee
+SMA = R_p/(1-ecc);                      % [km]          - Initial Orbit Semi-Major Axis
+n = sqrt(mu./SMA.^3);                   % [rad/sec]     - Mean motion
+eta = sqrt(1-ecc.^2);                   %               - Convenient eccentricity measure
 
-% Intermediate parameters for easier reading
-n = sqrt(mu./SMA_i.^3);               %               - Mean motion
-eta = sqrt(1-ecc^2);
-
-% Separate parameters for combined maneuver, plot surface of di vs. dOM on
+%%%% Note:
+% Separate parameters for combined maneuver, plot surface of dSMA vs. de on
 % a certain number of discrete orbit radiuses 
 Discrete_Radius = [6800 7500 10000];
+
+% Parameterized variables we're interested in
+delta_ecc = linspace(0,0.5-ecc,num_pts); %               - Eccentricity Change
+delta_SMA = linspace(0,1000,num_pts);    % [km]          - SMA Change
+
+% Calculate the DeltaV available with the used thruster
+% Ideal Rocket Equation, See Vallado Equation 6-42
+Dv_avail = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
 
 % Cases to consider
 method = {'Semi-Major Axis Maneuver','Eccentricity Maneuver','Combined Maneuver'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% Building the design space
+%%% Building the DeltaV design space
 
-% Equation for Arg. of Perigee/Mean Anomaly change
+% Equation for SMA/Eccentricity change
+% See Schaub & Alfriend, Eq. 24 & 25
 Dvp = @(del_a,del_ecc,a,nn,ecc) ((nn.*a.*eta)/4).*((del_a./a + del_ecc./(1+ecc)));
 Dva = @(del_a,del_ecc,a,nn,ecc) ((nn.*a.*eta)/4).*((del_a./a - del_ecc./(1-ecc)));
 
@@ -62,20 +71,15 @@ deccMat = repmat(delta_ecc',1,num_pts);
 
 % Memory allocation
 Dv_Req = zeros(num_pts,num_pts,num_pts);
-tic
+% Calculates each burn's DeltaV and sums them for the total burn DeltaV
 for ii=1:num_pts
-    Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc))+...
-        abs(Dva(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc));
+    Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA(ii),n(ii),ecc))+...
+        abs(Dva(dSMAMat,deccMat,SMA(ii),n(ii),ecc));
 end
-toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Calculate DeltaV & mass percent for each maneuver case
 
-% Memory allocation
-Dv_avail = zeros(1,length(method));
-Tburn = zeros(1,length(method));
-a_thrusti = zeros(1,length(method));
 for iter=1:length(method)
     
     % Switch on maneuver case
@@ -84,35 +88,27 @@ for iter=1:length(method)
         case 'Semi-Major Axis Maneuver'
             display(method(iter))
             
-            % Equation for thrust
-            a_thrusti(iter) = spacecraft.T_nom/spacecraft.M_total;
-            
-            % Find total DeltaV & Time of Flight
-            Dv_avail(iter) = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
-            Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
-            
             % Memory allocation & reset temporary variables
             Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(1,:,:);
             
-            % Loop calculates mass percent for each radius
+            % Loop calculates mass percent for each SMA
             for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
-                index = Dv_total(1,:,ii)>=Dv_avail(iter);
+                index = Dv_total(1,:,ii)>=Dv_avail;
                 Dv_total(1,index,ii) = NaN;
                 
-                % Determine mass with Rocket Eqn
+                % Determine mass with Ideal Rocket Equation
                 M_prop_vec = spacecraft.M_total*(1-exp(-(Dv_total(1,:,ii))/(g*spacecraft.I_sp)));
-                Mass_percent(:,ii) = M_prop_vec/m_prop_nom*100;
-                
+                Mass_percent(:,ii) = M_prop_vec/nominalPropMass*100;
             end
             
-            % Plotting stuff
+            % Plotting
             figure(iter)
             hold on
             grid on
-            surf(SMA_i,delta_SMA,Mass_percent,'EdgeColor','None')
+            surf(SMA,delta_SMA,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
@@ -126,35 +122,28 @@ for iter=1:length(method)
         case 'Eccentricity Maneuver'
             display(method(iter))
             
-            % Equation for thrust
-            a_thrusti(iter) = spacecraft.T_nom/spacecraft.M_total;
-            
-            % Find total DeltaV & Time of Flight
-            Dv_avail(iter) = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
-            Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
-            
             % Memory allocation & reset temporary variables
             Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(:,1,:);
             
-            % Loop calculates mass percent for each radius
+            % Loop calculates mass percent for each SMA
             for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
-                index = Dv_total(:,1,ii)>=Dv_avail(iter);
+                index = Dv_total(:,1,ii)>=Dv_avail;
                 Dv_total(index,1,ii) = NaN;
                 
-                % Determine mass with Rocket Eqn
+                % Determine mass with Ideal Rocket Equation
                 M_prop_vec = spacecraft.M_total*(1-exp(-(Dv_total(:,1,ii))/(g*spacecraft.I_sp)));
-                Mass_percent(:,ii) = M_prop_vec/m_prop_nom*100;
+                Mass_percent(:,ii) = M_prop_vec/nominalPropMass*100;
                 
             end
             
-            % Plotting stuff
+            % Plotting
             figure(iter)
             hold on
             grid on
-            surf(SMA_i,delta_ecc,Mass_percent,'EdgeColor','None')
+            surf(SMA,delta_ecc,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
@@ -168,59 +157,52 @@ for iter=1:length(method)
         case 'Combined Maneuver'
             display(method(iter))
             
-            %%% TODO: Figure this out
-            SMA_i = Discrete_Radius/(1-ecc);
-            n = (mu./SMA_i.^3).^0.5;
-            period = 2*pi*sqrt(SMA_i.^3/mu);
-            Dv_Req = zeros(num_pts,num_pts,length(SMA_i));
-            for ii=1:length(SMA_i)
-                Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc))+...
-                    abs(Dva(dSMAMat,deccMat,SMA_i(ii),n(ii),ecc));
+            % Determine the discrete SMA to calculate, get mean motion
+            SMA = Discrete_Radius/(1-ecc);
+            n = sqrt(mu./SMA.^3);
+            
+            Dv_Req = zeros(num_pts,num_pts,length(SMA));
+            % Recalculates DeltaV required at discrete SMA
+            for ii=1:length(SMA)
+                Dv_Req(:,:,ii) = abs(Dvp(dSMAMat,deccMat,SMA(ii),n(ii),ecc))+...
+                    abs(Dva(dSMAMat,deccMat,SMA(ii),n(ii),ecc));
             end
-            
-            % Equations for thrust
-            a_thrusti(iter) = spacecraft.T_nom/spacecraft.M_total;
-            
-            % Find total DeltaV & Time of Flight
-            Dv_avail(iter) = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
-            Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
             Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req;
             
             % Loop calculates mass percent for each radius
-            for ii=1:length(SMA_i)
+            for ii=1:length(SMA)
                 
                 % Delta V required cannot exceed Delta V available
-                index = Dv_total(:,:,ii)>=Dv_avail(iter);
+                index = Dv_total(:,:,ii)>=Dv_avail;
                 for kk=1:num_pts
                     for jj=1:num_pts
-                        if Dv_total(kk,jj,ii)>=Dv_avail(ii)
+                        if Dv_total(kk,jj,ii)>=Dv_avail
                             Dv_total(kk,jj,ii) = NaN;
                         end
                     end
                 end
                 
-                % Determine mass with Rocket Eqn
+                % Determine mass with Ideal Rocket Equation
                 M_prop_vec = spacecraft.M_total*(1-exp(-(Dv_total(:,:,ii))/(g*spacecraft.I_sp)));
-                Mass_percent(:,:,ii) = M_prop_vec/m_prop_nom*100;
+                Mass_percent(:,:,ii) = M_prop_vec/nominalPropMass*100;
                 
-                % Plotting stuff
+                % Plotting
                 figure(iter+ii-1)
                 hold on
                 grid on
                 surf(delta_SMA,delta_ecc,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $R=',num2str(SMA_i(ii)),'$'));
+                title1 = title(strcat(method(iter), ', $R=',num2str(SMA(ii)),'$'));
                 xl = xlabel('Eccentricity Change $\delta e$');
                 yl = ylabel('Semi-Major Axis Change $\delta a$, [km]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
                 axis tight
                 hold off
             end         
-            
     end
 
 end

@@ -1,5 +1,9 @@
-%% Impulsive Inclination and/or RAAN Maneuver
+%%% Impulsive Inclination and/or RAAN Maneuver
 % Author: Dylan Thomas
+
+% Equations for Delta V of maneuvers are derived from Gauss' Variational
+% Equations as shown in Schaub and Alfriend's "Impulsive Feedback to
+% Establish Specific Mean Orbital Elements of Spacecraft Formations", 2001
 clearvars; clc; delete('*.asv');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,31 +26,38 @@ spacecraft = struct(f1,v1,f2,v2,f3,v3,f4,v4,f5,v5);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Setting up problem constants, etc.
 
-% Parameter Inputs, constants
-R_e = 6378.137;                         % [km]          - Radius of Earth
-mu = 398600;                            % [km^3/s^2]    - Grav. Parameter
-g = 9.81/1000;                          % [km/s^2]      - Gravity
-num_pts = 300;                          %               - Num. of Plot points
-m_prop_nom = 1.5;                       % [kg]          - Nominal Propellant Mass
-inc_target_d = 51.6; %ISS inc           % [deg]         - Target orbit inclination
-deg2rad = pi/180;
+% Parameter Inputs, constants across all codes
+R_eq = 6378.137;                        % [km]          - Equatorial Radius of Earth
+mu = 398600;                            % [km^3/s^2]    - Gravitational Parameter of Earth
+g = 9.81/1000;                          % [km/s^2]      - Acceleration due to Gravity
+nominalPropMass = 1.5;                  % [kg]          - Nominal Propellant Mass
+num_pts = 300;                          %               - Num. of points
+deg2rad = pi/180;                       % [rad/deg]     - Conversion from radians to degrees
 
-% Setting up vectorized parameters
+% Orbital properties
+ecc = 0;                                %               - Orbit Eccentricity (Constant)
 init_alt = linspace(300,5000,num_pts);  % [km]          - Initial Orbit Altitude
-delta_OM_d = linspace(0,3,num_pts);     % [deg]         - Change in RAAN
-delta_i_d = linspace(0,3,num_pts);      % [km]          - Inclination Change
-R_i = init_alt + R_e;                   % [km]          - Initial Orbit SMA
-period = 2*pi*sqrt(R_i.^3/mu);          % [sec]         - Final Orbital period
-h_i = (mu*R_i).^(0.5);                  % [km]          - Orbit angular momentum
+R_p = init_alt + R_eq;                  % [km]          - Initial Orbit Perigee
+SMA = R_p/(1-ecc);                      % [km]          - Initial Orbit Semi-Major Axis
+h = sqrt(mu*SMA*(1-ecc.^2));            % [km^2/sec]    - Initial Orbit Angular Momentum
+inc = 51.6*deg2rad;                     % [deg]         - Target Orbit Inclination
 
+%%%% Note:
 % Separate parameters for combined maneuver, plot surface of di vs. dOM on
 % a certain number of discrete orbit radiuses 
 Discrete_Radius = [6800 7500 10000];
 
+% Parameterized variables we're interested in
+delta_i_d = linspace(0,4,num_pts);      % [deg]         - Inclination Change
+delta_OM_d = linspace(0,4,num_pts);     % [deg]         - RAAN Change
+
 % Convert to radians
-inc_target_r = inc_target_d*deg2rad;
 delta_i_r = delta_i_d*deg2rad;     
 delta_OM_r = delta_OM_d*deg2rad;
+
+% Calculate the DeltaV available with the used thruster
+% Ideal Rocket Equation, See Vallado Equation 6-42
+Dv_avail = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
 
 % Cases to consider
 method = {'Inclination Maneuver','RAAN Maneuver','Combined Maneuver'};
@@ -55,7 +66,9 @@ method = {'Inclination Maneuver','RAAN Maneuver','Combined Maneuver'};
 %%% Building the design space
 
 % Equation for inclination/RAAN change
-Dv = @(del_i,del_OM,r,h) (h./r).*((del_i.^2 + (del_OM.^2).*sin(inc_target_r*ones(size(del_i)) - del_i).^2).^(0.5));
+% See Schaub & Alfriend, Eq. 9
+Dv = @(del_i,del_OM,r,h) (h./r).*sqrt(del_i.^2 + ...
+    (del_OM.^2).*sin(inc*ones(num_pts)-del_i).^2);
 
 % Build matrices for orbital element changes
 dIncMat = repmat(delta_i_r,num_pts,1);
@@ -63,19 +76,14 @@ dRAANMat = repmat(delta_OM_r',1,num_pts);
 
 % Memory allocation
 Dv_Req = zeros(num_pts,num_pts,num_pts);
-tic
+% Calculates each burn's DeltaV and sums them for the total burn DeltaV
 for ii=1:num_pts
-    Dv_Req(:,:,ii) = Dv(dIncMat,dRAANMat,R_i(ii),h_i(ii));
+    Dv_Req(:,:,ii) = Dv(dIncMat,dRAANMat,SMA(ii),h(ii));
 end
-toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Calculate DeltaV & mass percent for each maneuver case
 
-% Memory allocation
-Dv_avail = zeros(1,length(method));
-Tburn = zeros(1,length(method));
-a_thrusti = zeros(1,length(method));
 for iter=1:length(method)
     
     % Switch on maneuver case
@@ -84,35 +92,27 @@ for iter=1:length(method)
         case 'Inclination Maneuver'
             display(method(iter))
             
-            % Equation for thrust
-            a_thrusti(iter) = spacecraft.T_nom/spacecraft.M_total;
-            
-            % Find total DeltaV & Time of Flight
-            Dv_avail(iter) = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
-            Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
-            
             % Memory allocation & reset temporary variables
             Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(1,:,:);
             
-            % Loop calculates mass percent for each radius
+            % Loop calculates mass percent for each SMA
             for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
-                index = Dv_total(1,:,ii)>=Dv_avail(iter);
+                index = Dv_total(1,:,ii)>=Dv_avail;
                 Dv_total(1,index,ii) = NaN;
                 
-                % Determine mass with Rocket Eqn
+                % Determine mass with Ideal Rocket Equation
                 M_prop_vec = spacecraft.M_total*(1-exp(-(Dv_total(1,:,ii))/(g*spacecraft.I_sp)));
-                Mass_percent(:,ii) = M_prop_vec/m_prop_nom*100;
-                
+                Mass_percent(:,ii) = M_prop_vec/nominalPropMass*100;
             end
             
-            % Plotting stuff
+            % Plotting
             figure(iter)
             hold on
             grid on
-            surf(R_i,delta_i_d,Mass_percent,'EdgeColor','None')
+            surf(SMA,delta_i_d,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
@@ -126,35 +126,27 @@ for iter=1:length(method)
         case 'RAAN Maneuver'
             display(method(iter))
             
-            % Equation for thrust
-            a_thrusti(iter) = spacecraft.T_nom/spacecraft.M_total;
-            
-            % Find total DeltaV & Time of Flight
-            Dv_avail(iter) = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
-            Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
-            
             % Memory allocation & reset temporary variables
             Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req(:,1,:);
             
-            % Loop calculates mass percent for each radius
+            % Loop calculates mass percent for each SMA
             for ii=1:num_pts
                 
                 % Total DeltaV required cannot exceed DeltaV available
-                index = Dv_total(:,1,ii)>=Dv_avail(iter);
+                index = Dv_total(:,1,ii)>=Dv_avail;
                 Dv_total(index,1,ii) = NaN;
                 
-                % Determine mass with Rocket Eqn
+                % Determine mass with Ideal Rocket Equation
                 M_prop_vec = spacecraft.M_total*(1-exp(-(Dv_total(:,1,ii))/(g*spacecraft.I_sp)));
-                Mass_percent(:,ii) = M_prop_vec/m_prop_nom*100;
-                
+                Mass_percent(:,ii) = M_prop_vec/nominalPropMass*100;
             end
             
             % Plotting stuff
             figure(iter)
             hold on
             grid on
-            surf(R_i,delta_OM_d,Mass_percent,'EdgeColor','None')
+            surf(SMA,delta_OM_d,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
             title1 = title(method(iter));
@@ -168,44 +160,38 @@ for iter=1:length(method)
         case 'Combined Maneuver'
             display(method(iter))
             
-            %%% TODO: Figure this out
-            R_i = Discrete_Radius;
-            h_i = (mu*R_i).^(0.5); 
-            period = 2*pi*sqrt(R_i.^3/mu);
-            Dv_Req = zeros(num_pts,num_pts,length(R_i));
-            for ii=1:length(R_i)
-                Dv_Req(:,:,ii) = Dv(dIncMat,dRAANMat,R_i(ii),h_i(ii));
+            % Determine the discrete SMA to calculate, get angular momentum
+            SMA = Discrete_Radius/(1-ecc);
+            h = sqrt(mu*SMA*(1-ecc.^2)); 
+            
+            Dv_Req = zeros(num_pts,num_pts,length(SMA));
+            % Recalculates DeltaV required at discrete SMA
+            for ii=1:length(SMA)
+                Dv_Req(:,:,ii) = Dv(dIncMat,dRAANMat,SMA(ii),h(ii));
             end
-            
-            % Equations for thrust
-            a_thrusti(iter) = spacecraft.T_nom/spacecraft.M_total;
-            
-            % Find total DeltaV & Time of Flight
-            Dv_avail(iter) = g*spacecraft.I_sp*log(spacecraft.M_total/(spacecraft.M_total-spacecraft.M_prop));
-            Tburn(iter) = (Dv_avail(iter)*1000)/(a_thrusti(iter));
             
             % Memory allocation & reset temporary variables
             Mass_percent = zeros(num_pts,num_pts);
             Dv_total = Dv_Req;
             
-            % Loop calculates mass percent for each radius
-            for ii=1:length(R_i)
+            % Loop calculates mass percent for each SMA
+            for ii=1:length(SMA)
                 
                 % Delta V required cannot exceed Delta V available
-                index = Dv_total(:,:,ii)>=Dv_avail(iter);
+                index = Dv_total(:,:,ii)>=Dv_avail;
                 for kk=1:num_pts
                     for jj=1:num_pts
-                        if Dv_total(kk,jj,ii)>=Dv_avail(ii)
+                        if Dv_total(kk,jj,ii)>=Dv_avail
                             Dv_total(kk,jj,ii) = NaN;
                         end
                     end
                 end
                 
-                % Determine mass with Rocket Eqn
+                % Determine mass with Ideal Rocket Equation
                 M_prop_vec = spacecraft.M_total*(1-exp(-(Dv_total(:,:,ii))/(g*spacecraft.I_sp)));
-                Mass_percent(:,:,ii) = M_prop_vec/m_prop_nom*100;
+                Mass_percent(:,:,ii) = M_prop_vec/nominalPropMass*100;
                 
-                % Plotting stuff
+                % Plotting
                 figure(iter+ii-1)
                 hold on
                 grid on
@@ -213,14 +199,13 @@ for iter=1:length(method)
 %                 colormap(gray)
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $R=',num2str(R_i(ii)),'$'));
+                title1 = title(strcat(method(iter), ', $R=',num2str(SMA(ii)),'$'));
                 xl = xlabel('Inclination Change $\delta i$, [deg]');
                 yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
                 axis tight
                 hold off
             end         
-            
     end
 
 end
