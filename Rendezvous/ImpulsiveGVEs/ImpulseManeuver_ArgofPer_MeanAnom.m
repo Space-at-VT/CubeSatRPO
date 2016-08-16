@@ -212,7 +212,7 @@ for iter=1:length(method)
                 surf(delta_om_d,delta_M_d,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $R=',num2str(SMA(ii)),'$'));
+                title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
                 xl = xlabel('Arg. of Perigee Change $\delta \omega$, [deg]');
                 yl = ylabel('Mean Anomaly Change $\delta M$, [deg]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)

@@ -196,7 +196,7 @@ for iter=1:length(method)
                 surf(delta_SMA,delta_ecc,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $R=',num2str(SMA(ii)),'$'));
+                title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
                 xl = xlabel('Eccentricity Change $\delta e$');
                 yl = ylabel('Semi-Major Axis Change $\delta a$, [km]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)

@@ -199,7 +199,7 @@ for iter=1:length(method)
 %                 colormap(gray)
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $R=',num2str(SMA(ii)),'$'));
+                title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
                 xl = xlabel('Inclination Change $\delta i$, [deg]');
                 yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
                 set([title1 xl yl],'interpreter','latex','fontsize',12)
