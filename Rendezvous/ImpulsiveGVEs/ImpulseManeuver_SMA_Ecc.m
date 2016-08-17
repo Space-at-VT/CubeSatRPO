@@ -47,7 +47,7 @@ eta = sqrt(1-ecc.^2);                   %               - Convenient eccentricit
 Discrete_Radius = [6800 7500 10000];
 
 % Parameterized variables we're interested in
-delta_ecc = linspace(0,0.5-ecc,num_pts); %               - Eccentricity Change
+delta_ecc = linspace(0,0.1+ecc,num_pts); %               - Eccentricity Change
 delta_SMA = linspace(0,1000,num_pts);    % [km]          - SMA Change
 
 % Calculate the DeltaV available with the used thruster
@@ -111,10 +111,10 @@ for iter=1:length(method)
             surf(SMA,delta_SMA,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
-            title1 = title(method(iter));
+%             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Semi-Major Axis Change $\delta a$, [km]');
-            set([title1 xl yl],'interpreter','latex','fontsize',12)
+            yl = ylabel('Semi-Major Axis Correction $\delta a$, [km]');
+            set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
           
@@ -146,10 +146,10 @@ for iter=1:length(method)
             surf(SMA,delta_ecc,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
-            title1 = title(method(iter));
+%             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Eccentricity Change $\delta e$');
-            set([title1 xl yl],'interpreter','latex','fontsize',12)
+            yl = ylabel('Eccentricity Correction $\delta e$');
+            set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
             
@@ -196,10 +196,10 @@ for iter=1:length(method)
                 surf(delta_SMA,delta_ecc,Mass_percent(:,:,ii),'EdgeColor','None')
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
-                xl = xlabel('Eccentricity Change $\delta e$');
-                yl = ylabel('Semi-Major Axis Change $\delta a$, [km]');
-                set([title1 xl yl],'interpreter','latex','fontsize',12)
+%                 title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
+                yl = ylabel('Eccentricity Correction $\delta e$');
+                xl = xlabel('Semi-Major Axis Correction $\delta a$, [km]');
+                set([xl yl],'interpreter','latex','fontsize',14)
                 axis tight
                 hold off
             end         

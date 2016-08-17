@@ -115,10 +115,10 @@ for iter=1:length(method)
             surf(SMA,delta_i_d,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
-            title1 = title(method(iter));
+%             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Inclination Change $\delta i$, [deg]');
-            set([title1 xl yl],'interpreter','latex','fontsize',12)
+            yl = ylabel('Inclination Correction $\delta i$, [deg]');
+            set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
           
@@ -149,10 +149,10 @@ for iter=1:length(method)
             surf(SMA,delta_OM_d,Mass_percent,'EdgeColor','None')
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
-            title1 = title(method(iter));
+%             title1 = title(method(iter));
             xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
-            set([title1 xl yl],'interpreter','latex','fontsize',12)
+            yl = ylabel('RAAN Correction $\delta \Omega$, [deg]');
+            set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
             
@@ -199,10 +199,10 @@ for iter=1:length(method)
 %                 colormap(gray)
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
-                title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
-                xl = xlabel('Inclination Change $\delta i$, [deg]');
-                yl = ylabel('RAAN Change $\delta \Omega$, [deg]');
-                set([title1 xl yl],'interpreter','latex','fontsize',12)
+%                 title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
+                xl = xlabel('Inclination Correction $\delta i$, [deg]');
+                yl = ylabel('RAAN Correction $\delta \Omega$, [deg]');
+                set([xl yl],'interpreter','latex','fontsize',14)
                 axis tight
                 hold off
             end         
