@@ -112,8 +112,8 @@ for iter=1:length(method)
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
 %             title1 = title(method(iter));
-            xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Semi-Major Axis Correction $\delta a$, [km]');
+            xl = xlabel('Orbit Radius, km');
+            yl = ylabel('Semi-Major Axis Correction, km');
             set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
@@ -147,8 +147,8 @@ for iter=1:length(method)
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
 %             title1 = title(method(iter));
-            xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Eccentricity Correction $\delta e$');
+            xl = xlabel('Orbit Radius, km');
+            yl = ylabel('Eccentricity Correction');
             set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
@@ -197,8 +197,8 @@ for iter=1:length(method)
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
 %                 title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
-                yl = ylabel('Eccentricity Correction $\delta e$');
-                xl = xlabel('Semi-Major Axis Correction $\delta a$, [km]');
+                yl = ylabel('Eccentricity Correction');
+                xl = xlabel('Semi-Major Axis Correction, km');
                 set([xl yl],'interpreter','latex','fontsize',14)
                 axis tight
                 hold off

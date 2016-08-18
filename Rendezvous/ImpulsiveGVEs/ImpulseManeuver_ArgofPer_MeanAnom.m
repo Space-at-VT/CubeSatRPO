@@ -129,8 +129,8 @@ for iter=1:length(method)
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
 %             title1 = title(method(iter));
-            xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Argument of Perigee Correction $\delta \omega$, [deg]');
+            xl = xlabel('Orbit Radius, km');
+            yl = ylabel('Argument of Perigee Correction, deg.');
             set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
@@ -163,8 +163,8 @@ for iter=1:length(method)
             c = colorbar;
             c.Label.String = 'Percent Propellant Mass Burned';
 %             title1 = title(method(iter));
-            xl = xlabel('Orbit Radius, [km]');
-            yl = ylabel('Mean Anomaly Correction $\delta M$, [deg]');
+            xl = xlabel('Orbit Radius, km');
+            yl = ylabel('Mean Anomaly Correction, deg.');
             set([xl yl],'interpreter','latex','fontsize',14)
             axis tight
             hold off
@@ -213,8 +213,8 @@ for iter=1:length(method)
                 c = colorbar;
                 c.Label.String = 'Percent Propellant Mass Burned';
 %                 title1 = title(strcat(method(iter), ', $a=',num2str(SMA(ii)),'$'));
-                xl = xlabel('Argument of Perigee Correction $\delta \omega$, [deg]');
-                yl = ylabel('Mean Anomaly Correction $\delta M$, [deg]');
+                xl = xlabel('Argument of Perigee Correction, deg.');
+                yl = ylabel('Mean Anomaly Correction, deg.');
                 set([xl yl],'interpreter','latex','fontsize',14)
                 axis tight
                 hold off
