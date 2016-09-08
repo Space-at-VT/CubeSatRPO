@@ -1,3 +1,10 @@
+% Translational trajcetory generation is all the same as the summer.
+% Organized to be more easily commanded. All attitude modeling is still in
+% development. Basic damping and PD in included for perturbations caused
+% from the off-centering of thrusters. As of 9/8 the model is not coupled
+% with translational movement. The linearity of the model may limit the
+% accuracy of coupling rotation with translation.
+
 classdef newSatellite
     %satellite defines the properties of a satellite as well as its trajectory
     % relative to the origin
