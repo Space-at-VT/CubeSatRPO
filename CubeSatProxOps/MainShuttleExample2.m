@@ -1,7 +1,7 @@
 clear,clc
 close all
 
-STK = 0;
+STK = 1;
 
 scenario = newScenario;
 scenario.tmax = 500;
@@ -15,9 +15,9 @@ sat.x = 5;
 sat.y = 0;
 sat.z = 0;
 sat.vmax = 0.25;
-sat.umax = 0.5;
-sat.dryMass = 21;
-sat.fuel = 6;
+sat.umax = 1;
+sat.dryMass = 30;
+sat.fuel = 4.5;
 sat.kp = 0.1;
 sat.kd = 0.7;
 
@@ -29,7 +29,7 @@ chief.name = 'Shuttle';
 % p(3,:) = [-5,-5,-18];
 % p(4,:) = sat.p;
 p(1,:) = [-7,-12,6];
-p(2,:) = [-7,-12,-6];
+p(2,:) = [-4,-20,0];
 p(3,:) = [0,-12,-6];
 p(4,:) = sat.p;
 
@@ -41,7 +41,7 @@ shuttleLbnd = [-5,-16,-1
                -5,-9,-15];
            
 iter = 1;
-loiter = 20;
+loiter = 30;
 delay = 0;
 while scenario.t <= scenario.tmax
     clc
@@ -50,6 +50,7 @@ while scenario.t <= scenario.tmax
     if separation(sat.p,p(iter,:)) < 0.25
         delay = delay+1;
         if delay == loiter
+            sat.b1 = sat.b1+90*(pi/180);
             iter = iter+1;
             if iter > size(p,1),iter = 1;end
             delay = 0;
@@ -58,15 +59,14 @@ while scenario.t <= scenario.tmax
     
     chief = chief.approach(scenario,chief.p);
     sat = sat.approach(scenario,p(iter,:),shuttleLbnd,shuttleUbnd);
-%     sat = sat.maintain(scenario,holdLbnd,holdUbnd);
 
     clf
     for ii = 1:size(shuttleLbnd,1)
         plotObstacle(shuttleLbnd(ii,:),shuttleUbnd(ii,:),'-k');
     end
-    plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.4])
+    plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
     plotTrajectory(sat);
-    view(166,20)
+    view(230,20)
     pause(1e-10)
 
     scenario.t = scenario.t+scenario.dt;

@@ -2,13 +2,13 @@ function [Anew,bnew] = minDistance(Aold,bold,sat,scenario,pf)
 %% Approach target cost function contraints
 x0 = sat.x(end);   y0 = sat.y(end);   z0 = sat.z(end);   %assign positions
 vx0 = sat.vx(end); vy0 = sat.vy(end); vz0 = sat.vz(end); %assign velocities
-xf = pf(1);  yf = pf(2);  zf = pf(3);
+xf = pf(1);        yf = pf(2);        zf = pf(3);
 dt = scenario.dt;
 Nsim = scenario.Nsim;
 Nvar = scenario.Nvar;
 Nhcw = scenario.Nhcw;
 Ntotal = scenario.Ntotal;
-beta = sat.umax*dt^2/sat.m; %velocity multiplier
+beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 
 % Target objective absolute value
 A = zeros(6,Ntotal);

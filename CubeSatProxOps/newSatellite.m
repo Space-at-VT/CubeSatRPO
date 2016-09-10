@@ -30,9 +30,9 @@ classdef newSatellite
         dx = 0.01                   %x-axis moment arm,     m
         dy = 0.01                   %y-axis moment arm,     m
         dz = 0.01                   %z-axis moment arm,     m
-        o1 = 0
-        o2 = 0
-        o3 = 0
+        b1 = 0
+        b2 = 0
+        b3 = 0
         
         x = 0                       %x position over time,  m
         y = 0                       %y position over time,  m
@@ -43,12 +43,12 @@ classdef newSatellite
         ux = 0                      %Controls over time,    N
         uy = 0                      %                       N
         uz = 0                      %                       N
-        wx = 0                      %Angular velocity       rad/s
-        wy = 0                      %over time,             rad/s
-        wz = 0                      %                       rad/s
-        thx = 0                     %Euler angles           rad
-        thy = 0                     %over time,             rad
-        thz = 0                     %                       rad
+        wb1 = 0                     %Angular velocity       rad/s
+        wb2 = 0                     %over time,             rad/s
+        wb3 = 0                     %                       rad/s
+        th1 = 0                     %Euler angles           rad
+        th2 = 0                     %over time,             rad
+        th3 = 0                     %                       rad
         
         flag = []                   %Exit flag
     end
@@ -227,9 +227,9 @@ sat.ux(iter+1) = 0;
 sat.uy(iter+1) = 0;
 sat.uz(iter+1) = 0;
 
-Tx = -sat.kp*(sat.thx(iter)-sat.o1)-sat.kd*sat.wx(iter);
-Ty = -sat.kp*(sat.thy(iter)-sat.o2)-sat.kd*sat.wy(iter);
-Tz = -sat.kp*(sat.thz(iter)-sat.o3)-sat.kd*sat.wz(iter);
+Tx = -sat.kp*(sat.th1(iter)-sat.b1)-sat.kd*sat.wb1(iter);
+Ty = -sat.kp*(sat.th2(iter)-sat.b2)-sat.kd*sat.wb2(iter);
+Tz = -sat.kp*(sat.th3(iter)-sat.b3)-sat.kd*sat.wb3(iter);
 
 if Tx > sat.Tmax,Tx = sat.Tmax;end
 if Tx < -sat.Tmax,Tx = -sat.Tmax;end
@@ -237,15 +237,17 @@ if Ty > sat.Tmax,Ty = sat.Tmax;end
 if Ty < -sat.Tmax,Ty = -sat.Tmax;end
 if Tz > sat.Tmax,Tz = sat.Tmax;end
 if Tz < -sat.Tmax,Tz = -sat.Tmax;end
-    
 
-sat.wx(iter+1) = sat.wx(iter)+((sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx)/sat.I(1))*dt;
-sat.wy(iter+1) = sat.wy(iter)+((sat.ux(iter)*sat.dz-sat.uz(iter)*sat.dx+Ty)/sat.I(2))*dt;
-sat.wz(iter+1) = sat.wz(iter)+((sat.uy(iter)*sat.dx-sat.ux(iter)*sat.dy+Tz)/sat.I(3))*dt;
+sat.wb1(iter+1) = sat.wb1(iter)+((sat.I(2)-sat.I(3))/sat.I(1)*sat.wb2(iter)*sat.wb3(iter)...
+    +(sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx)/sat.I(1))*dt;
+sat.wb2(iter+1) = sat.wb2(iter)+((sat.I(1)-sat.I(3))/sat.I(2)*sat.wb1(iter)*sat.wb3(iter)...
+    +(sat.ux(iter)*sat.dz-sat.uz(iter)*sat.dx+Ty)/sat.I(2))*dt;
+sat.wb3(iter+1) = sat.wb3(iter)+((sat.I(1)-sat.I(2))/sat.I(3)*sat.wb1(iter)*sat.wb2(iter)...
+    +(sat.uy(iter)*sat.dx-sat.ux(iter)*sat.dy+Tz)/sat.I(3))*dt;
 
-sat.thx(iter+1) = sat.thx(iter)+sat.wx(iter)*dt;
-sat.thy(iter+1) = sat.thy(iter)+sat.wy(iter)*dt;
-sat.thz(iter+1) = sat.thz(iter)+sat.wz(iter)*dt;
+sat.th1(iter+1) = sat.th1(iter)+sat.wb1(iter)*dt;
+sat.th2(iter+1) = sat.th2(iter)+sat.wb2(iter)*dt;
+sat.th3(iter+1) = sat.th3(iter)+sat.wb3(iter)*dt;
 
 sat.fuel = sat.fuel-sum(u(1:6))*sat.umax*sat.mdot;
 end

@@ -73,20 +73,20 @@ ylabel('z [m]')
 
 figure
 subplot(3,1,1)
-plot(t,sat.thx*(180/pi),'-b','linewidth',2)
+plot(t,sat.th1*(180/pi),'-b','linewidth',2)
 axis([0 tf 0 1],'auto y')
 grid on
 ylabel('\Theta_1 [deg]')
 title('Attitude vs Time')
 
 subplot(3,1,2)
-plot(t,sat.thy*(180/pi),'-r','linewidth',2)
+plot(t,sat.th2*(180/pi),'-r','linewidth',2)
 axis([0 tf 0 1],'auto y')
 grid on
 ylabel('\Theta_2 [deg]')
 
 subplot(3,1,3)
-plot(t,sat.thz*(180/pi),'-g','linewidth',2)
+plot(t,sat.th3*(180/pi),'-g','linewidth',2)
 axis([0 tf 0 1],'auto y')
 grid on
 ylabel('\Theta_3 [deg]')

@@ -7,10 +7,10 @@ figure(1)
 hold on
 p1 = plot3(sat.y,sat.z,sat.x,p1style,'linewidth',2);
 % p2 = plot3(sat.y(1),sat.z(1),sat.x(1),p2style,'linewidth',2,'markersize',10);
-p3 = quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',2);
+% p3 = quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',2);
 p4 = plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
 
-R = 5*rot(sat.thz(end),3)*rot(sat.thy(end),1)*rot(sat.thx(end),3);
+R = 5*rot(sat.th1(end),3)*rot(sat.th2(end),1)*rot(sat.th3(end),3);
 
 r1 = plot3([sat.p(2),sat.p(2)+R(2,1)'],[sat.p(3),sat.p(3)+R(3,1)'],...
     [sat.p(1),sat.p(1)+R(1,1)'],'b','linewidth',2);
