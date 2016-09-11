@@ -190,7 +190,8 @@ classdef newSatellite
                 [A,b] = holdProximity(A,b,sat,scenario,lbnd,ubnd);
                 [A,b] = maxVelocity(A,b,sat,scenario);
                 
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',1,...
+                    'RootLPMaxIterations',1e5);
                 [u,~,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
                 sat = signalsProp(sat,scenario,u,exitflag);

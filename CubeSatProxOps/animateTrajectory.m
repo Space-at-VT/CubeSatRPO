@@ -22,7 +22,7 @@ for ii = 1:length(sat.x)
     plotTrajectory(satIter);
     
     view(230,20)
-    pause(1e-10)
+    pause(1e-3)
 end
 
 
