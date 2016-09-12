@@ -1,4 +1,6 @@
-function p1 = plotTrajectory(sat)
+function p1 = plotTrajectory(sat,unitSize)
+if nargin < 2 || isempty(unitSize),unitSize = 5;end
+
 p1style = strcat(':',sat.color);
 p2style = strcat(sat.color,'^');
 p4style = 'ks';
@@ -10,7 +12,7 @@ p1 = plot3(sat.y,sat.z,sat.x,p1style,'linewidth',2);
 % p3 = quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',2);
 p4 = plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
 
-R = 5*rot(sat.th3(end),3)*rot(sat.th2(end),1)*rot(sat.th1(end),3);
+R = unitSize*rot(sat.th3(end),3)*rot(sat.th2(end),1)*rot(sat.th1(end),3);
 
 r1 = plot3([sat.p(2),sat.p(2)+R(2,1)'],[sat.p(3),sat.p(3)+R(3,1)'],...
     [sat.p(1),sat.p(1)+R(1,1)'],'b','linewidth',2);

@@ -21,7 +21,7 @@ classdef newScenario
         TP                      %s
         Nsim
         Nvar
-        Nhcw
+        Neom
         Nbi
         Ntotal
     end
@@ -49,8 +49,8 @@ classdef newScenario
             Nvar = 6*obj.Nsim;
         end
         % Number of hcw acceleration terms
-        function Nhcw = get.Nhcw(obj)
-            Nhcw = 3*obj.Nsim;
+        function Neom = get.Neom(obj)
+            Neom = 3*obj.Nsim;
         end
         % Number of collision avoidance binary variables
         function Nbi = get.Nbi(obj)

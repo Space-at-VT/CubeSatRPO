@@ -107,30 +107,30 @@ classdef newSatellite
                 w1 = 1e-1; %Thrust
                 w2 = 1;    %Targeting
                 Nvar = scenario.Nvar;
-                Nhcw = scenario.Nhcw;
+                Neom = scenario.Neom;
                 scenario.Nobj = size(lbnd,1);
                 Nbi = scenario.Nbi;
                 Ntotal = scenario.Ntotal;
                 
                 % Function coefficients
                 f = [w1*scenario.dt*ones(Nvar,1); %Control thrusts
-                    zeros(Nhcw,1);       %HCW accelerations
+                    zeros(Neom,1);       %HCW accelerations
                     w2*ones(3,1);        %Target distance
                     zeros(Nbi,1)];       %Collision avoidance
                 
                 % Parameter bounds, lower & upper
                 lb = [zeros(Nvar,1);   %Control thrusts
-                    -inf*ones(Nhcw,1); %HCW accelerations
+                    -inf*ones(Neom,1); %HCW accelerations
                     zeros(3,1);        %Target distance
                     zeros(Nbi,1)];     %Collision avoidance
                 
                 ub = [ones(Nvar,1);   %Control thrusts
-                    inf*ones(Nhcw,1); %HCW accelerations
+                    inf*ones(Neom,1); %HCW accelerations
                     inf*ones(3,1);    %Target distance
                     ones(Nbi,1)];     %Collision avoidance
                 
                 % Integer constraints
-                intcon = [1:Nvar,Nvar+Nhcw+3+1:Ntotal];
+                intcon = [1:Nvar,Nvar+Neom+3+1:Ntotal];
                 
                 % Equality contraints
                 Aeq = []; beq = [];
@@ -155,8 +155,8 @@ classdef newSatellite
         end
         
         %% Maximize distance from point with collision avoidance
-        function sat = evade(sat,scenario,p)
-        end
+%         function sat = evade(sat,scenario,p)
+%         end
         
         %% Hold within a certain zone
         function sat = maintain(sat,scenario,lbnd,ubnd)
@@ -208,6 +208,7 @@ Nvar = scenario.Nvar;
 iter = length(sat.x);
 sat.flag(iter) = exitflag;
 
+% Control signals
 sat.ux(iter) = sat.umax*(u(1)-u(2));
 sat.uy(iter) = sat.umax*(u(3)-u(4));
 sat.uz(iter) = sat.umax*(u(5)-u(6));
@@ -215,11 +216,13 @@ ax = u(Nvar+1);
 ay = u(Nvar+2);
 az = u(Nvar+3);
 
+% New velocity
 dt = scenario.dt;
 sat.vx(iter+1) = sat.vx(iter)+(sat.ux(iter)/sat.m+ax)*dt;
 sat.vy(iter+1) = sat.vy(iter)+(sat.uy(iter)/sat.m+ay)*dt;
 sat.vz(iter+1) = sat.vz(iter)+(sat.uz(iter)/sat.m+az)*dt;
 
+% New position
 sat.x(iter+1) = sat.x(iter)+sat.vx(iter)*dt;
 sat.y(iter+1) = sat.y(iter)+sat.vy(iter)*dt;
 sat.z(iter+1) = sat.z(iter)+sat.vz(iter)*dt;
@@ -228,6 +231,7 @@ sat.ux(iter+1) = 0;
 sat.uy(iter+1) = 0;
 sat.uz(iter+1) = 0;
 
+% Reaction wheel torques
 Tx = -sat.kp*(sat.th1(iter)-sat.b1)-sat.kd*sat.wb1(iter);
 Ty = -sat.kp*(sat.th2(iter)-sat.b2)-sat.kd*sat.wb2(iter);
 Tz = -sat.kp*(sat.th3(iter)-sat.b3)-sat.kd*sat.wb3(iter);
@@ -239,6 +243,7 @@ if Ty < -sat.Tmax,Ty = -sat.Tmax;end
 if Tz > sat.Tmax,Tz = sat.Tmax;end
 if Tz < -sat.Tmax,Tz = -sat.Tmax;end
 
+% New angular velocity
 sat.wb1(iter+1) = sat.wb1(iter)+((sat.I(2)-sat.I(3))/sat.I(1)*sat.wb2(iter)*sat.wb3(iter)...
     +(sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx)/sat.I(1))*dt;
 sat.wb2(iter+1) = sat.wb2(iter)+((sat.I(1)-sat.I(3))/sat.I(2)*sat.wb1(iter)*sat.wb3(iter)...
@@ -246,6 +251,7 @@ sat.wb2(iter+1) = sat.wb2(iter)+((sat.I(1)-sat.I(3))/sat.I(2)*sat.wb1(iter)*sat.
 sat.wb3(iter+1) = sat.wb3(iter)+((sat.I(1)-sat.I(2))/sat.I(3)*sat.wb1(iter)*sat.wb2(iter)...
     +(sat.uy(iter)*sat.dx-sat.ux(iter)*sat.dy+Tz)/sat.I(3))*dt;
 
+% New angles
 sat.th1(iter+1) = sat.th1(iter)+sat.wb1(iter)*dt;
 sat.th2(iter+1) = sat.th2(iter)+sat.wb2(iter)*dt;
 sat.th3(iter+1) = sat.th3(iter)+sat.wb3(iter)*dt;

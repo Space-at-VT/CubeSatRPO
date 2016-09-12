@@ -1,5 +1,22 @@
 clear,clc
 close all
+
+load('RPOExample')
+satIter = newSatellite;
+for ii = 1:300
+    clf
+    plotObstacle(chief.lbnd,chief.ubnd,'-k');
+    satIter.x = deputy.x(1:ii);
+    satIter.y = deputy.y(1:ii);
+    satIter.z = deputy.z(1:ii);
+    satIter.ux = deputy.ux(1:ii);
+    satIter.uy = deputy.uy(1:ii);
+    satIter.uz = deputy.uz(1:ii);
+    plotTrajectory(satIter,0);
+    pause(1e-10)
+end
+
+%%
 load('ShuttleInspection')
 
 satIter = newSatellite;
@@ -46,24 +63,8 @@ for ii = 1:min(lengthSat)
         satIter.ux = sat(jj).ux(1:ii);
         satIter.uy = sat(jj).uy(1:ii);
         satIter.uz = sat(jj).uz(1:ii);
-        plotTrajectory(satIter);
+        plotTrajectory(satIter,0);
     end
     view(-330,30)
-    pause(1e-10)
-end
-
-%%
-load('RPOExample')
-satIter = newSatellite;
-for ii = 1:length(deputy.x)
-    clf
-    plotObstacle(chief.lbnd,chief.ubnd,'-k');
-    satIter.x = deputy.x(1:ii);
-    satIter.y = deputy.y(1:ii);
-    satIter.z = deputy.z(1:ii);
-    satIter.ux = deputy.ux(1:ii);
-    satIter.uy = deputy.uy(1:ii);
-    satIter.uz = deputy.uz(1:ii);
-    plotTrajectory(satIter);
     pause(1e-10)
 end
