@@ -6,7 +6,7 @@ xf = pf(1);        yf = pf(2);        zf = pf(3);
 dt = scenario.dt;
 Nsim = scenario.Nsim;
 Nvar = scenario.Nvar;
-Nhcw = scenario.Nhcw;
+Neom = scenario.Neom;
 Ntotal = scenario.Ntotal;
 beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 
@@ -44,12 +44,12 @@ for nn = 1:Nsim %counting no. iterations
     jj = jj+6;
 end
 
-A(1,Nvar+Nhcw+1) = -1; %(+x, xtarget)
-A(2,Nvar+Nhcw+2) = -1; %(+y, ytarget)
-A(3,Nvar+Nhcw+3) = -1; %(+z, ztarget)
-A(4,Nvar+Nhcw+1) = -1; %(-x, xtarget)
-A(5,Nvar+Nhcw+2) = -1; %(-y, ytarget)
-A(6,Nvar+Nhcw+3) = -1; %(-z, ztarget)
+A(1,Nvar+Neom+1) = -1; %(+x, xtarget)
+A(2,Nvar+Neom+2) = -1; %(+y, ytarget)
+A(3,Nvar+Neom+3) = -1; %(+z, ztarget)
+A(4,Nvar+Neom+1) = -1; %(-x, xtarget)
+A(5,Nvar+Neom+2) = -1; %(-y, ytarget)
+A(6,Nvar+Neom+3) = -1; %(-z, ztarget)
 
 b(1) = -x0+xf-Nsim*dt*vx0;    %(+x)
 b(2) = -y0+yf-Nsim*dt*vy0;    %(+y)

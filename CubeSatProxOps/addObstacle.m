@@ -4,7 +4,7 @@ vx0 = sat.vx(end); vy0 = sat.vy(end); vz0 = sat.vz(end); %assign velocities
 dt = scenario.dt;
 Nsim = scenario.Nsim;
 Nvar = scenario.Nvar;
-Nhcw = scenario.Nhcw;
+Neom = scenario.Neom;
 Ntotal = scenario.Ntotal;
 NU = 3;
 beta = sat.umax*dt^2/sat.m; %velocity multiplier
@@ -50,7 +50,7 @@ for kk = 1:7:(7*Nsim) %counting position of rows (+/-x,y,z...binary)
     end
     
     % Binary variables
-    jj = Nvar+Nhcw+NU+Nvar*(N-1)+6*(ii-1)+1;
+    jj = Nvar+Neom+NU+Nvar*(N-1)+6*(ii-1)+1;
     A(kk,jj) = -M;     %(+x)
     A(kk+1,jj+1) = -M; %(+y)
     A(kk+2,jj+2) = -M; %(+z)

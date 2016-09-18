@@ -1,10 +1,10 @@
 clear,clc
 close all
 
-STK = 0;
+STK = 1;
 
 scenario = newScenario;
-scenario.tmax = 500;
+scenario.tmax = 100;
 scenario.T = 15;
 scenario.dt = 1;
 
@@ -86,7 +86,7 @@ if STK
     root.ExecuteCommand('New / Scenario ShuttleInspection');
     
     root.ExecuteCommand('New / */Satellite Origin');
-    root.ExecuteCommand(sprintf('SetState */Satellite/Origin Classical TwoBody UseScenarioInterval 60 ICRF "1 Jan 2000" %f 0 28.5 0 0 0',scenario.a));
+    root.ExecuteCommand(sprintf('SetState */Satellite/Origin Classical TwoBody UseScenarioInterval 60 ICRF "1 Jan 2000" %f 0 28.5 0 0 180',scenario.a));
     root.ExecuteCommand('VO * ObjectStateInWin Show off Object Satellite/Origin WindowId 1');
     
     root.ExecuteCommand(sprintf('New / */Satellite Chief'));
@@ -94,7 +94,7 @@ if STK
     root.ExecuteCommand(sprintf('SetState */Satellite/Chief FromFile "%s"',file));
     root.ExecuteCommand('VO */Satellite/Chief Pass3D OrbitLead None OrbitTrail None');
     root.ExecuteCommand('VO */Satellite/Chief Model File "C:\Program Files\AGI\STK 11\STKData\VO\Models\Space\shuttle-05.mdl"');
-%     root.ExecuteCommand('VO */Satellite/Chief Articulate "1 Jan 2000" 0 Shuttle_05 Size 1 0.75');
+    root.ExecuteCommand('VO */Satellite/Chief Articulate "1 Jan 2000" 0 Shuttle_05 Size 1 0.75');
     root.ExecuteCommand('VO * ViewFromTo Normal From Satellite/Chief To Satellite/Chief');
     
     
@@ -103,7 +103,8 @@ if STK
         file = strcat(cd,'\',sat(ii).name,'.e');
         root.ExecuteCommand(sprintf('SetState */Satellite/%s FromFile "%s"',sat(ii).name,file));
         root.ExecuteCommand(sprintf('VO */Satellite/%s Pass3D OrbitLead None OrbitTrail None',sat(ii).name));
-        root.ExecuteCommand(sprintf('VO */Satellite/%s Model File "C:/Program Files/AGI/STK 11/STKData/VO/Models/Space/cubesat.mdl"',sat(ii).name));
+        root.ExecuteCommand(sprintf('VO */Satellite/%s Model File "C:/Program Files/AGI/STK 11/STKData/VO/Models/Space/cubesat_6u.dae"',sat(ii).name));
+        root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 6U-Cubesat Yaw 0 180',sat(ii).name));
     end
     
     root.ExecuteCommand('SetAnimation * AnimationMode xRealTime');

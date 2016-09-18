@@ -1,7 +1,7 @@
 function p1 = plotTrajectory(sat,unitSize)
 if nargin < 2 || isempty(unitSize),unitSize = 5;end
 
-p1style = strcat(':',sat.color);
+p1style = strcat('.',sat.color);
 p2style = strcat(sat.color,'^');
 p4style = 'ks';
 

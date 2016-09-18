@@ -58,7 +58,7 @@ classdef newScenario
         end
         % Total number of variables
         function Ntotal = get.Ntotal(obj)
-            Ntotal = obj.Nvar+obj.Nhcw+3+obj.Nbi;
+            Ntotal = obj.Nvar+obj.Neom+3+obj.Nbi;
         end
     end
 end
