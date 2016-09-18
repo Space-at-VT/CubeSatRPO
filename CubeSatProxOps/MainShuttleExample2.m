@@ -1,10 +1,10 @@
 clear,clc
 close all
 
-STK = 1;
+STK = 0;
 
 scenario = newScenario;
-scenario.tmax = 100;
+scenario.tmax = 400;
 scenario.T = 15;
 scenario.dt = 1;
 
@@ -46,7 +46,7 @@ delay = 0;
 while scenario.t <= scenario.tmax
     clc
     fprintf('Time: %5.1f\n',scenario.t)
-    
+
     if separation(sat.p,p(iter,:)) < 0.25
         delay = delay+1;
         if delay == loiter

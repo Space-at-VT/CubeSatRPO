@@ -46,20 +46,28 @@ classdef newSatellite
         wb1 = 0                     %Angular velocity       rad/s
         wb2 = 0                     %over time,             rad/s
         wb3 = 0                     %                       rad/s
-        th1 = 0                     %Euler angles           rad
-        th2 = 0                     %over time,             rad
-        th3 = 0                     %                       rad
-        
+        th1 = 0
+        th2 = 0
+        th3 = 0
+        q1 = 0
+        q2 = 0
+        q3 = 0
+        q4 = 1;
         flag = []                   %Exit flag
     end
     properties (Dependent)
         m                           %Total mass,            kg
         mdot                        %Mass flow rate,        kg/s
         p                           %Position vector,       m
-        v                           %Velocity vectory,      m/s
+        v                           %Velocity vector,       m/s
+        w                           %Angular velocity,
+        qb
+        R
+        
         ubnd                        %Upper bound,           m
         lbnd                        %Lower bound,           m
         I                           %Moments of Inertia,    kg/m^2
+        
     end
     methods
         % Constructor
@@ -85,6 +93,21 @@ classdef newSatellite
         end
         function v = get.v(obj)
             v = [obj.vx(end),obj.vy(end),obj.vz(end)];
+        end
+        function w = get.w(obj)
+            w = [obj.wb1(end),obj.wb2(end),obj.wb3(end)]';
+        end
+        function qb = get.qb(obj)
+            qb = [obj.q1(end),obj.q2(end),obj.q3(end),obj.q4(end)]';
+        end
+        function R = get.R(obj)
+                q = obj.qb(1:3);
+                q4 = obj.qb(4);
+                qx = [0 -q(3) q(2)
+                      q(3) 0 -q(1)
+                     -q(2) q(1) 0];
+                Rbi = (q4^2-q'*q)*eye(3)+2*(q*q')-2*q4*qx;
+                R = Rbi';
         end
         function ubnd = get.ubnd(obj)
             ubnd = obj.bnd/2;
@@ -236,26 +259,43 @@ Tx = -sat.kp*(sat.th1(iter)-sat.b1)-sat.kd*sat.wb1(iter);
 Ty = -sat.kp*(sat.th2(iter)-sat.b2)-sat.kd*sat.wb2(iter);
 Tz = -sat.kp*(sat.th3(iter)-sat.b3)-sat.kd*sat.wb3(iter);
 
-if Tx > sat.Tmax,Tx = sat.Tmax;end
-if Tx < -sat.Tmax,Tx = -sat.Tmax;end
-if Ty > sat.Tmax,Ty = sat.Tmax;end
-if Ty < -sat.Tmax,Ty = -sat.Tmax;end
-if Tz > sat.Tmax,Tz = sat.Tmax;end
-if Tz < -sat.Tmax,Tz = -sat.Tmax;end
+if Tx > sat.Tmax,   Tx = sat.Tmax;end
+if Tx < -sat.Tmax,  Tx = -sat.Tmax;end
+if Ty > sat.Tmax,   Ty = sat.Tmax;end
+if Ty < -sat.Tmax,  Ty = -sat.Tmax;end
+if Tz > sat.Tmax,   Tz = sat.Tmax;end
+if Tz < -sat.Tmax,  Tz = -sat.Tmax;end
+
+% Total applied torque
+M(1) = sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx;
+M(2) = sat.ux(iter)*sat.dz-sat.uz(iter)*sat.dx+Ty;
+M(3) = sat.uy(iter)*sat.dx-sat.ux(iter)*sat.dy+Tz;
 
 % New angular velocity
-sat.wb1(iter+1) = sat.wb1(iter)+((sat.I(2)-sat.I(3))/sat.I(1)*sat.wb2(iter)*sat.wb3(iter)...
-    +(sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx)/sat.I(1))*dt;
-sat.wb2(iter+1) = sat.wb2(iter)+((sat.I(1)-sat.I(3))/sat.I(2)*sat.wb1(iter)*sat.wb3(iter)...
-    +(sat.ux(iter)*sat.dz-sat.uz(iter)*sat.dx+Ty)/sat.I(2))*dt;
-sat.wb3(iter+1) = sat.wb3(iter)+((sat.I(1)-sat.I(2))/sat.I(3)*sat.wb1(iter)*sat.wb2(iter)...
-    +(sat.uy(iter)*sat.dx-sat.ux(iter)*sat.dy+Tz)/sat.I(3))*dt;
+I = sat.I;
+w = sat.w;
+sat.wb1(iter+1) = sat.wb1(iter)+((I(2)-I(3))/I(1)*w(2)*w(3)+M(1)/I(1))*dt;
+sat.wb2(iter+1) = sat.wb2(iter)+((I(3)-I(1))/I(2)*w(1)*w(3)+M(2)/I(2))*dt;
+sat.wb3(iter+1) = sat.wb3(iter)+((I(1)-I(2))/I(3)*w(1)*w(2)+M(3)/I(3))*dt;
 
-% New angles
 sat.th1(iter+1) = sat.th1(iter)+sat.wb1(iter)*dt;
 sat.th2(iter+1) = sat.th2(iter)+sat.wb2(iter)*dt;
 sat.th3(iter+1) = sat.th3(iter)+sat.wb3(iter)*dt;
 
+% New quaternions
+q = sat.qb(1:3);
+q4 = sat.qb(4);
+qx = [0 -q(3) q(2)
+      q(3) 0 -q(1)
+      -q(2) q(1) 0];
+ 
+dqdt = 1/2*[qx+q4*eye(3);-q']*w;
+sat.q1(iter+1) = sat.q1(iter)+dqdt(1)*dt;
+sat.q2(iter+1) = sat.q2(iter)+dqdt(2)*dt;
+sat.q3(iter+1) = sat.q3(iter)+dqdt(3)*dt;
+sat.q4(iter+1) = sat.q4(iter)+dqdt(4)*dt;
+
+% Fuel mass loss
 sat.fuel = sat.fuel-sum(u(1:6))*sat.umax*sat.mdot;
 end
 

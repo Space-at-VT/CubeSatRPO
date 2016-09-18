@@ -17,32 +17,33 @@ for ii = 1:300
 end
 
 %%
-% load('ShuttleInspection')
-% 
-% satIter = newSatellite;
-% for ii = 1:length(sat.x)
-%     clf
-%     for jj = 1:size(shuttleLbnd,1)
-%         plotObstacle(shuttleLbnd(jj,:),shuttleUbnd(jj,:),'-k');
-%     end
-%     plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
-%     
-%     satIter.x = sat.x(1:ii);
-%     satIter.y = sat.y(1:ii);
-%     satIter.z = sat.z(1:ii);
-%     satIter.ux = sat.ux(1:ii);
-%     satIter.uy = sat.uy(1:ii);
-%     satIter.uz = sat.uz(1:ii);
-%     satIter.th1 = sat.th1(ii);
-%     satIter.th2 = sat.th2(ii);
-%     satIter.th3 = sat.th3(ii);
-%     plotTrajectory(satIter);
-%     
-%     view(230,20)
-%     pause(1e-3)
-% end
-% 
-% 
+load('ShuttleInspection')
+
+satIter = newSatellite;
+for ii = 1:length(sat.x)
+    clf
+    for jj = 1:size(shuttleLbnd,1)
+        plotObstacle(shuttleLbnd(jj,:),shuttleUbnd(jj,:),'-k');
+    end
+    plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
+    
+    satIter.x = sat.x(1:ii);
+    satIter.y = sat.y(1:ii);
+    satIter.z = sat.z(1:ii);
+    satIter.ux = sat.ux(1:ii);
+    satIter.uy = sat.uy(1:ii);
+    satIter.uz = sat.uz(1:ii);
+    satIter.q1 = sat.q1(ii);
+    satIter.q2 = sat.q2(ii);
+    satIter.q3 = sat.q3(ii);
+    satIter.q4 = sat.q4(ii);
+    plotTrajectory(satIter);
+    
+    view(230,20)
+    pause(1e-3)
+end
+
+
 % %%
 % load('SwarmFollow4')
 % 

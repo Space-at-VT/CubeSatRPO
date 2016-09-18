@@ -1,14 +1,14 @@
 function quaterionsTest
-close all,
-clc
+clear,clc
+close all
 
-tf = 100;
+tf = 250;
 dt = 1;
 
-w0 = [0.1,0.5,0.1]';
+w0 = [0,1,0]';
 q0 = [0,0,0,1]';
 y0 = [w0;q0];
-I = 20/12*(0.3^2)*[1,1,1];
+I = 20/12*(0.3^2+0.3^2)*[1,1,1]';
 
 tspan = 0:dt:tf;
 [t,y] = ode45(@(t,y)quaternions(t,y,I),tspan,y0);
@@ -23,7 +23,8 @@ for ii = 1:size(q,1)
     qx = [0 -qi(3) qi(2)
           qi(3) 0 -qi(1)
          -qi(2) qi(1) 0];
-    R = (q4^2 - qi'*qi)*eye(3)+2*(qi*qi')-2*q4*qx;
+    Rbi = (q4^2-qi'*qi)*eye(3)+2*(qi*qi')-2*q4*qx;
+    R = Rbi';
     clf
     hold on
     plot3([0,R(2,1)'],[0,R(3,1)'],[0,R(1,1)'],'b','linewidth',2);
@@ -63,25 +64,28 @@ end
 
 function dydt = quaternions(t,y,I)
 w = y(1:3);
-q = y(4:7);
+q = y(4:6);
+q4 = y(7);
 
-% if t > 30 && t < 31
-%     M = [-0.15,0,0.01]';
-% else
+if t > 25 && t < 30
+    M = [0.0,0,0]';
+else
     M = [0,0,0]';
-% end
+end
 
 dwdt = zeros(3,1);
 dwdt(1) = (I(2)-I(3))/I(1)*w(2)*w(3)+M(1)/I(1);
 dwdt(2) = (I(3)-I(1))/I(2)*w(1)*w(3)+M(2)/I(2);
 dwdt(3) = (I(1)-I(2))/I(3)*w(1)*w(2)+M(3)/I(3);
 
-S = [0 -w(3) w(2)
-     w(3) 0 -w(1)
-     -w(2) w(1) 0];
-
-dqdt = -1/2*[S;w']*q(1:3)+1/2*q(4)*[eye(3);zeros(1,3)]*w;
-
+qx = [0 -q(3) q(2)
+      q(3) 0 -q(1)
+      -q(2) q(1) 0];
+ 
+dqdt = 1/2*[qx+q4*eye(3);-q']*w;
 dydt = [dwdt;dqdt];
-
 end
+% S = [0 -w(3) w(2)
+%      w(3) 0 -w(1)
+%      -w(2) w(1) 0];
+%dqdt = -1/2*[S;w']*q(1:3)+1/2*q(4)*[eye(3);zeros(1,3)]*w

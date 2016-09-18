@@ -72,24 +72,41 @@ xlabel('Time [s]')
 ylabel('z [m]')
 
 figure
-subplot(3,1,1)
-plot(t,sat.th1*(180/pi),'-b','linewidth',2)
+hold on
+plot(t,sat.wb1,'-b','linewidth',2)
+plot(t,sat.wb2,'-r','linewidth',2)
+plot(t,sat.wb3,'-g','linewidth',2)
+hold off
 axis([0 tf 0 1],'auto y')
 grid on
-ylabel('\Theta_1 [deg]')
-title('Attitude vs Time')
+legend({'\omega1','\omega2','\omega3'})
+xlabel('Time, t')
+ylabel('Angular Velocity, rad/s')
+title('Angular Velocity vs Time')
 
-subplot(3,1,2)
-plot(t,sat.th2*(180/pi),'-r','linewidth',2)
+figure
+hold on
+plot(t,sat.th1,'-b','linewidth',2)
+plot(t,sat.th2,'-r','linewidth',2)
+plot(t,sat.th3,'-g','linewidth',2)
+hold off
 axis([0 tf 0 1],'auto y')
 grid on
-ylabel('\Theta_2 [deg]')
+legend({'\omega1','\omega2','\omega3'})
+xlabel('Time, t')
+ylabel('Angular Velocity, rad/s')
+title('Angular Velocity vs Time')
 
-subplot(3,1,3)
-plot(t,sat.th3*(180/pi),'-g','linewidth',2)
+figure
+hold on
+plot(t,sat.q1,'-b','linewidth',2)
+plot(t,sat.q2,'-r','linewidth',2)
+plot(t,sat.q3,'-g','linewidth',2)
+plot(t,sat.q4,'-k','linewidth',2)
+hold off
 axis([0 tf 0 1],'auto y')
 grid on
-ylabel('\Theta_3 [deg]')
 xlabel('Time [s]')
-
+ylabel('Quaternions')
+title('Attitude Quaternions vs Time')
 end
