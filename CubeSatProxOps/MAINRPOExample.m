@@ -3,7 +3,7 @@ close all
 
 % Time and orbit parameters
 scenario = newScenario;
-scenario.tmax = scenario.TP;
+scenario.tmax = 300;
 scenario.T = 15;
 
 % Chief bounds
@@ -13,9 +13,20 @@ chief.bnd = [2,3,2];
 
 % Deputy parameters
 deputy = newSatellite;
+deputy.EOM = 'LERM';
 deputy.x = 15;
-deputy.vz = 0.01;
+deputy.vz = 0;
+deputy.umax = 0.25;
 deputy.vmax = 0.25;
+deputy.dryMass = 13;
+deputy.fuel = 0.5;
+deputy.dx = 0;
+deputy.dy = 0;
+deputy.dz = 0;
+deputy.Tmax = 0.025;
+deputy.kp = 0;
+deputy.kd = 0;
+
 deputy.mode = 'approach';
 
 % Proximity holding zone
@@ -50,10 +61,10 @@ while scenario.t <= scenario.tmax
     % Plot
     clf
     plotObstacle(chief.lbnd,chief.ubnd,'-k');
-    plotTrajectory(deputy);
+    plotTrajectory(deputy,0);
     pause(0.0001)
 
     scenario.t = scenario.t+scenario.dt;
 end
-
+plotControls(deputy,scenario)
 save('RPOExample')

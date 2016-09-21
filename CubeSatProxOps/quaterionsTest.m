@@ -2,10 +2,10 @@ function quaterionsTest
 clear,clc
 close all
 
-tf = 250;
+tf = 500;
 dt = 1;
 
-w0 = [0,1,0]';
+w0 = [0.1,0,0]';
 q0 = [0,0,0,1]';
 y0 = [w0;q0];
 I = 20/12*(0.3^2+0.3^2)*[1,1,1]';
@@ -24,12 +24,12 @@ for ii = 1:size(q,1)
           qi(3) 0 -qi(1)
          -qi(2) qi(1) 0];
     Rbi = (q4^2-qi'*qi)*eye(3)+2*(qi*qi')-2*q4*qx;
-    R = Rbi';
+    Rib = Rbi';
     clf
     hold on
-    plot3([0,R(2,1)'],[0,R(3,1)'],[0,R(1,1)'],'b','linewidth',2);
-    plot3([0,R(2,2)'],[0,R(3,2)'],[0,R(1,2)'],'r','linewidth',2);
-    plot3([0,R(2,3)'],[0,R(3,3)'],[0,R(1,3)'],'g','linewidth',2);
+    plot3([0,Rib(2,1)'],[0,Rib(3,1)'],[0,Rib(1,1)'],'b','linewidth',2);
+    plot3([0,Rib(2,2)'],[0,Rib(3,2)'],[0,Rib(1,2)'],'r','linewidth',2);
+    plot3([0,Rib(2,3)'],[0,Rib(3,3)'],[0,Rib(1,3)'],'g','linewidth',2);
     hold off
     grid on
     axis([-3 3 -3 3 -3 3])
@@ -67,8 +67,8 @@ w = y(1:3);
 q = y(4:6);
 q4 = y(7);
 
-if t > 25 && t < 30
-    M = [0.0,0,0]';
+if t > 100 && t < 110
+    M = [0.00,0,-0.00]';
 else
     M = [0,0,0]';
 end

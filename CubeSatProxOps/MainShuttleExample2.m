@@ -14,7 +14,7 @@ sat.bnd = [0.3,0.3,0.3];
 sat.x = 5;
 sat.y = 0;
 sat.z = 0;
-sat.vmax = 0.25;
+sat.vmax = 0.3;
 sat.umax = 1;
 sat.dryMass = 30;
 sat.fuel = 4.5;
@@ -50,7 +50,6 @@ while scenario.t <= scenario.tmax
     if separation(sat.p,p(iter,:)) < 0.25
         delay = delay+1;
         if delay == loiter
-            sat.b1 = sat.b1+90*(pi/180);
             iter = iter+1;
             if iter > size(p,1),iter = 1;end
             delay = 0;

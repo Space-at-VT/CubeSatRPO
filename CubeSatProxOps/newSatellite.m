@@ -11,29 +11,28 @@ classdef newSatellite
     
     % Default properties of a basic cubesat
     properties
+        %% Graphics
         name = 'CubeSat'            %Satellite name
         EOM = 'HCW'                 %Relative motion model
         mode = 'approach'           %Satellite objective
         color = 'b'                 %Graph color
         
+        %% Satellite parameters
         umax = 0.25                 %Thrust,                N
         ISP = 150                   %Specific impulse,      s
         dryMass = 10                %Dry mass,              kg
         fuel = 0.5                  %Fuel mass,             kg
-        vmax = 0.5                  %Maximum velocity,      m/s
-        
+        vmax = 0.5                  %Max velocity,          m/s
         bnd = [0.1,0.1,0.1]         %Satellite size,        m
-        Tmax = 0.25
+        Tmax = 0.25                 %Max reaction torque
         kp = 0.1                    %Position damping
         kd = 0.7                    %Velocity damping
         ki = 0.3                    %Integral damping
         dx = 0.01                   %x-axis moment arm,     m
         dy = 0.01                   %y-axis moment arm,     m
         dz = 0.01                   %z-axis moment arm,     m
-        b1 = 0
-        b2 = 0
-        b3 = 0
-        
+               
+        %% Trajectory
         x = 0                       %x position over time,  m
         y = 0                       %y position over time,  m
         z = 0                       %z position over time,  m
@@ -43,6 +42,8 @@ classdef newSatellite
         ux = 0                      %Controls over time,    N
         uy = 0                      %                       N
         uz = 0                      %                       N
+        
+        %% Attitude
         wb1 = 0                     %Angular velocity       rad/s
         wb2 = 0                     %over time,             rad/s
         wb3 = 0                     %                       rad/s
@@ -53,7 +54,13 @@ classdef newSatellite
         q2 = 0
         q3 = 0
         q4 = 1;
+
+        point = 0
+        pt = [0,0,0]
+        
+        %% Debug
         flag = []                   %Exit flag
+        
     end
     properties (Dependent)
         m                           %Total mass,            kg
@@ -61,9 +68,8 @@ classdef newSatellite
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
         w                           %Angular velocity,
-        qb
-        R
-        
+        qb                          %Quaternions
+        R                           %Rotation matrix Rib
         ubnd                        %Upper bound,           m
         lbnd                        %Lower bound,           m
         I                           %Moments of Inertia,    kg/m^2
@@ -185,20 +191,20 @@ classdef newSatellite
         function sat = maintain(sat,scenario,lbnd,ubnd)
             if sat.fuel > 0
                 Nvar = scenario.Nvar;
-                Nhcw = scenario.Nhcw;
+                Neom = scenario.Neom;
                 
                 % Function coefficients
                 f = [scenario.dt*ones(Nvar,1);  %Control thrusts
-                     zeros(Nhcw,1)              %HCW accelerations
+                     zeros(Neom,1)              %HCW accelerations
                      zeros(3,1)];               %Target distance
                 
                 % Parameter bounds, lower & upper
                 lb = [zeros(Nvar,1);            %Control thrusts
-                    -inf*ones(Nhcw,1)           %HCW accelerations
+                    -inf*ones(Neom,1)           %HCW accelerations
                      zeros(3,1)];
                 
                 ub = [ones(Nvar,1);             %Control thrusts
-                     inf*ones(Nhcw,1)           %HCW accelerations
+                     inf*ones(Neom,1)           %HCW accelerations
                      ones(3,1)];    
                  
                 % Integer constraints
@@ -213,8 +219,7 @@ classdef newSatellite
                 [A,b] = holdProximity(A,b,sat,scenario,lbnd,ubnd);
                 [A,b] = maxVelocity(A,b,sat,scenario);
                 
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',1,...
-                    'RootLPMaxIterations',1e5);
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
                 [u,~,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
                 sat = signalsProp(sat,scenario,u,exitflag);
@@ -232,6 +237,7 @@ iter = length(sat.x);
 sat.flag(iter) = exitflag;
 
 % Control signals
+u = round(u);
 sat.ux(iter) = sat.umax*(u(1)-u(2));
 sat.uy(iter) = sat.umax*(u(3)-u(4));
 sat.uz(iter) = sat.umax*(u(5)-u(6));
@@ -255,16 +261,29 @@ sat.uy(iter+1) = 0;
 sat.uz(iter+1) = 0;
 
 % Reaction wheel torques
-Tx = -sat.kp*(sat.th1(iter)-sat.b1)-sat.kd*sat.wb1(iter);
-Ty = -sat.kp*(sat.th2(iter)-sat.b2)-sat.kd*sat.wb2(iter);
-Tz = -sat.kp*(sat.th3(iter)-sat.b3)-sat.kd*sat.wb3(iter);
+if sat.point
+%     vt = (sat.pt-sat.p)/norm(sat.pt-sat.p);
+%     th3 = atan2(vt(2),vt(1));
+%     th2 = atan2(vt(3),norm([vt(1),vt(2)]));
+%     R = rot(th2,2)*rot(th3,3);
+%     q4t = 1/2*sqrt(1+trace(R));
+%     qt = 1/4/q4t*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
+% 
+%     Tx = -sat.kp*(sat.q1(iter)-qt(1))-sat.kd*sat.wb1(iter);
+%     Ty = -sat.kp*(sat.q2(iter)-qt(2))-sat.kd*sat.wb2(iter);
+%     Tz = -sat.kp*(sat.q3(iter)-qt(3))-sat.kd*sat.wb3(iter);   
+else
+    Tx = -sat.kp*(sat.q1(iter))-sat.kd*sat.wb1(iter);
+    Ty = -sat.kp*(sat.q2(iter))-sat.kd*sat.wb2(iter);
+    Tz = -sat.kp*(sat.q3(iter))-sat.kd*sat.wb3(iter);
+end
 
-if Tx > sat.Tmax,   Tx = sat.Tmax;end
-if Tx < -sat.Tmax,  Tx = -sat.Tmax;end
-if Ty > sat.Tmax,   Ty = sat.Tmax;end
-if Ty < -sat.Tmax,  Ty = -sat.Tmax;end
-if Tz > sat.Tmax,   Tz = sat.Tmax;end
-if Tz < -sat.Tmax,  Tz = -sat.Tmax;end
+if Tx > sat.Tmax,   Tx = sat.Tmax;  end
+if Tx < -sat.Tmax,  Tx = -sat.Tmax; end
+if Ty > sat.Tmax,   Ty = sat.Tmax;  end
+if Ty < -sat.Tmax,  Ty = -sat.Tmax; end
+if Tz > sat.Tmax,   Tz = sat.Tmax;  end
+if Tz < -sat.Tmax,  Tz = -sat.Tmax; end
 
 % Total applied torque
 M(1) = sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx;
@@ -285,9 +304,9 @@ sat.th3(iter+1) = sat.th3(iter)+sat.wb3(iter)*dt;
 % New quaternions
 q = sat.qb(1:3);
 q4 = sat.qb(4);
-qx = [0 -q(3) q(2)
-      q(3) 0 -q(1)
-      -q(2) q(1) 0];
+qx = [0   -q(3) q(2)
+      q(3) 0   -q(1)
+     -q(2) q(1) 0];
  
 dqdt = 1/2*[qx+q4*eye(3);-q']*w;
 sat.q1(iter+1) = sat.q1(iter)+dqdt(1)*dt;
