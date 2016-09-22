@@ -3,7 +3,7 @@ close all
 
 % Time and orbit parameters
 scenario = newScenario;
-scenario.tmax = 300;
+scenario.tmax = 120;
 scenario.T = 15;
 
 % Chief bounds
@@ -14,19 +14,22 @@ chief.bnd = [2,3,2];
 % Deputy parameters
 deputy = newSatellite;
 deputy.EOM = 'LERM';
-deputy.x = 15;
-deputy.vz = 0;
+deputy.bnd = [0.1,0.3,0.2];
+deputy.d = [0.01,0.1,0.01];
 deputy.umax = 0.25;
-deputy.vmax = 0.25;
+deputy.Tmax = 0.1;
+deputy.vmax = 0.5;
 deputy.dryMass = 13;
-deputy.fuel = 0.5;
-deputy.dx = 0;
-deputy.dy = 0;
-deputy.dz = 0;
-deputy.Tmax = 0.025;
-deputy.kp = 0;
-deputy.kd = 0;
+deputy.fuel = 0.1;
+deputy.kp = 0.1;
+deputy.kd = 0.1;
 
+% Deputy initial state
+deputy.x = 100;
+deputy.y = -50;
+deputy.z = 25;
+deputy.vy = 0;
+deputy.wb1 = 1;
 deputy.mode = 'approach';
 
 % Proximity holding zone
@@ -53,18 +56,18 @@ while scenario.t <= scenario.tmax
     
     % Deputy propagation (MPC)
     if strcmp(deputy.mode,'approach')
-        deputy = approach(deputy,scenario,center);
+        deputy = deputy.approach(scenario,center,chief.lbnd,chief.ubnd);
     elseif strcmp(deputy.mode,'maintain')
-        deputy = maintain(deputy,scenario,lbnd,ubnd);
+        deputy = deputy.maintain(scenario,lbnd,ubnd);
     end
     
     % Plot
     clf
     plotObstacle(chief.lbnd,chief.ubnd,'-k');
-    plotTrajectory(deputy,0);
-    pause(0.0001)
-
+    plotTrajectory(deputy,10);
+    
     scenario.t = scenario.t+scenario.dt;
 end
+
 plotControls(deputy,scenario)
 save('RPOExample')

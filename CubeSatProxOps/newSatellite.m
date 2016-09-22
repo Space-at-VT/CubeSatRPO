@@ -9,7 +9,7 @@ classdef newSatellite
     %satellite defines the properties of a satellite as well as its trajectory
     % relative to the origin
     
-    % Default properties of a basic cubesat
+    % Default properties of a basic 6u cubesat
     properties
         %% Graphics
         name = 'CubeSat'            %Satellite name
@@ -20,28 +20,30 @@ classdef newSatellite
         %% Satellite parameters
         umax = 0.25                 %Thrust,                N
         ISP = 150                   %Specific impulse,      s
-        dryMass = 10                %Dry mass,              kg
+        dryMass = 13                %Dry mass,              kg
         fuel = 0.5                  %Fuel mass,             kg
         vmax = 0.5                  %Max velocity,          m/s
-        bnd = [0.1,0.1,0.1]         %Satellite size,        m
+        bnd = [0.1,0.3,0.2]         %Satellite size,        m
         Tmax = 0.25                 %Max reaction torque
         kp = 0.1                    %Position damping
         kd = 0.7                    %Velocity damping
         ki = 0.3                    %Integral damping
-        dx = 0.01                   %x-axis moment arm,     m
-        dy = 0.01                   %y-axis moment arm,     m
-        dz = 0.01                   %z-axis moment arm,     m
+        d = [0.01,0.01,0.01]        %Thruster misalignment
+                                    % moment arm,           m
                
         %% Trajectory
         x = 0                       %x position over time,  m
         y = 0                       %y position over time,  m
         z = 0                       %z position over time,  m
-        vx = 0                      %Velocity over time,    m/s
-        vy = 0                      %                       m/s
-        vz = 0                      %                       m/s
-        ux = 0                      %Controls over time,    N
-        uy = 0                      %                       N
-        uz = 0                      %                       N
+        vx = 0                      %x velocity over time,  m/s
+        vy = 0                      %y velocity over time,  m/s
+        vz = 0                      %z velocity over time,  m/s
+        ux = []                     %x thrust over time,    N
+        uy = []                     %y thrust over time,    N
+        uz = []                     %z thrust over time,    N
+        T1 = []                     %x reaction torque,     N*m
+        T2 = []                     %y reaction torque,     N*m
+        T3 = []                     %z reaction torque,     N*m
         
         %% Attitude
         wb1 = 0                     %Angular velocity       rad/s
@@ -50,13 +52,13 @@ classdef newSatellite
         th1 = 0
         th2 = 0
         th3 = 0
-        q1 = 0
+        q1 = 0                      %Quaternions
         q2 = 0
         q3 = 0
         q4 = 1;
 
-        point = 0
-        pt = [0,0,0]
+        point = 0                   %Attitude pointing y/m, binary
+        pt = [0,0,0]                %Attitude point target, m
         
         %% Debug
         flag = []                   %Exit flag
@@ -67,9 +69,10 @@ classdef newSatellite
         mdot                        %Mass flow rate,        kg/s
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
-        w                           %Angular velocity,
-        qb                          %Quaternions
-        R                           %Rotation matrix Rib
+        w                           %Angular velocity,      rad/s
+        qb                          %Quaternions vector,
+        Rib                         %Rotation matrix b2i
+        Rbi                         %Rotation matrix i2b
         ubnd                        %Upper bound,           m
         lbnd                        %Lower bound,           m
         I                           %Moments of Inertia,    kg/m^2
@@ -106,14 +109,17 @@ classdef newSatellite
         function qb = get.qb(obj)
             qb = [obj.q1(end),obj.q2(end),obj.q3(end),obj.q4(end)]';
         end
-        function R = get.R(obj)
-                q = obj.qb(1:3);
-                q4 = obj.qb(4);
-                qx = [0 -q(3) q(2)
-                      q(3) 0 -q(1)
-                     -q(2) q(1) 0];
-                Rbi = (q4^2-q'*q)*eye(3)+2*(q*q')-2*q4*qx;
-                R = Rbi';
+        function Rbi = get.Rbi(obj)
+            q = obj.qb(1:3);
+            q4 = obj.qb(4);
+            qx = [0 -q(3) q(2)
+                q(3) 0 -q(1)
+                -q(2) q(1) 0];
+            Rbi = (q4^2-q'*q)*eye(3)+2*(q*q')-2*q4*qx;
+
+        end
+        function Rib = get.Rib(obj)
+            Rib = inv(obj.Rbi);
         end
         function ubnd = get.ubnd(obj)
             ubnd = obj.bnd/2;
@@ -273,22 +279,25 @@ if sat.point
 %     Ty = -sat.kp*(sat.q2(iter)-qt(2))-sat.kd*sat.wb2(iter);
 %     Tz = -sat.kp*(sat.q3(iter)-qt(3))-sat.kd*sat.wb3(iter);   
 else
-    Tx = -sat.kp*(sat.q1(iter))-sat.kd*sat.wb1(iter);
-    Ty = -sat.kp*(sat.q2(iter))-sat.kd*sat.wb2(iter);
-    Tz = -sat.kp*(sat.q3(iter))-sat.kd*sat.wb3(iter);
+    sat.T1(iter) = -sat.kp*(sat.q1(iter))-sat.kd*sat.wb1(iter);
+    sat.T2(iter) = -sat.kp*(sat.q2(iter))-sat.kd*sat.wb2(iter);
+    sat.T3(iter) = -sat.kp*(sat.q3(iter))-sat.kd*sat.wb3(iter);
+    sat.T1(iter+1) = 0;
+    sat.T2(iter+1) = 0;
+    sat.T3(iter+1) = 0;
 end
 
-if Tx > sat.Tmax,   Tx = sat.Tmax;  end
-if Tx < -sat.Tmax,  Tx = -sat.Tmax; end
-if Ty > sat.Tmax,   Ty = sat.Tmax;  end
-if Ty < -sat.Tmax,  Ty = -sat.Tmax; end
-if Tz > sat.Tmax,   Tz = sat.Tmax;  end
-if Tz < -sat.Tmax,  Tz = -sat.Tmax; end
+if sat.T1(iter) > sat.Tmax,   sat.T1(iter) = sat.Tmax;  end
+if sat.T1(iter) < -sat.Tmax,  sat.T1(iter) = -sat.Tmax; end
+if sat.T2(iter) > sat.Tmax,   sat.T2(iter) = sat.Tmax;  end
+if sat.T2(iter) < -sat.Tmax,  sat.T2(iter) = -sat.Tmax; end
+if sat.T3(iter) > sat.Tmax,   sat.T3(iter) = sat.Tmax;  end
+if sat.T3(iter) < -sat.Tmax,  sat.T3(iter) = -sat.Tmax; end
 
 % Total applied torque
-M(1) = sat.uz(iter)*sat.dy-sat.uy(iter)*sat.dz+Tx;
-M(2) = sat.ux(iter)*sat.dz-sat.uz(iter)*sat.dx+Ty;
-M(3) = sat.uy(iter)*sat.dx-sat.ux(iter)*sat.dy+Tz;
+M(1) = sat.uz(iter)*sat.d(2)-sat.uy(iter)*sat.d(3)+sat.T1(iter);
+M(2) = sat.ux(iter)*sat.d(3)-sat.uz(iter)*sat.d(1)+sat.T2(iter);
+M(3) = sat.uy(iter)*sat.d(1)-sat.ux(iter)*sat.d(2)+sat.T3(iter);
 
 % New angular velocity
 I = sat.I;
@@ -309,10 +318,18 @@ qx = [0   -q(3) q(2)
      -q(2) q(1) 0];
  
 dqdt = 1/2*[qx+q4*eye(3);-q']*w;
-sat.q1(iter+1) = sat.q1(iter)+dqdt(1)*dt;
-sat.q2(iter+1) = sat.q2(iter)+dqdt(2)*dt;
-sat.q3(iter+1) = sat.q3(iter)+dqdt(3)*dt;
-sat.q4(iter+1) = sat.q4(iter)+dqdt(4)*dt;
+
+qb = sat.qb+dqdt*dt;
+qb = qb/norm(qb);
+sat.q1(iter+1) = qb(1);
+sat.q2(iter+1) = qb(2);
+sat.q3(iter+1) = qb(3);
+sat.q4(iter+1) = qb(4);
+
+% sat.q1(iter+1) = sat.q1(iter)+dqdt(1)*dt;
+% sat.q2(iter+1) = sat.q2(iter)+dqdt(2)*dt;
+% sat.q3(iter+1) = sat.q3(iter)+dqdt(3)*dt;
+% sat.q4(iter+1) = sat.q4(iter)+dqdt(4)*dt;
 
 % Fuel mass loss
 sat.fuel = sat.fuel-sum(u(1:6))*sat.umax*sat.mdot;

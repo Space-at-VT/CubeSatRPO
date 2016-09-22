@@ -72,6 +72,20 @@ xlabel('Time [s]')
 ylabel('z [m]')
 
 figure
+subplot(3,1,1)
+hold on
+plot(t,sat.T1,'-b','linewidth',2)
+plot(t,sat.T2,'-r','linewidth',2)
+plot(t,sat.T3,'-g','linewidth',2)
+hold off
+axis([0 tf 0 1],'auto y')
+grid on
+legend({'T1','T2','T3'})
+xlabel('Time [s]')
+ylabel('Reaction Torques, Nm')
+title('Reaction Torques vs Time')
+
+subplot(3,1,2)
 hold on
 plot(t,sat.wb1,'-b','linewidth',2)
 plot(t,sat.wb2,'-r','linewidth',2)
@@ -80,24 +94,11 @@ hold off
 axis([0 tf 0 1],'auto y')
 grid on
 legend({'\omega1','\omega2','\omega3'})
-xlabel('Time, t')
+xlabel('Time [s]')
 ylabel('Angular Velocity, rad/s')
 title('Angular Velocity vs Time')
 
-% figure
-% hold on
-% plot(t,sat.th1,'-b','linewidth',2)
-% plot(t,sat.th2,'-r','linewidth',2)
-% plot(t,sat.th3,'-g','linewidth',2)
-% hold off
-% axis([0 tf 0 1],'auto y')
-% grid on
-% legend({'\omega1','\omega2','\omega3'})
-% xlabel('Time, t')
-% ylabel('Angular Velocity, rad/s')
-% title('Angular Velocity vs Time')
-
-figure
+subplot(3,1,3)
 hold on
 plot(t,sat.q1,'-b','linewidth',2)
 plot(t,sat.q2,'-r','linewidth',2)
