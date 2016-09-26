@@ -12,12 +12,4 @@ for i = 1:4
     plot3([ybnd(i) ybnd(i)],[lbnd(3),ubnd(3)],[xbnd(i) xbnd(i)],style,'linewidth',1)
 end
 hold off
-% grid on
-% xlabel('Radial, x [m]')
-% ylabel('In-track, y [m]')
-% zlabel('Cross-track, z [m]')
-% title('Relative Trajectory')
-% axis('equal')
-% camva(9)
-% view(-45,15)
 end

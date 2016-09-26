@@ -58,15 +58,11 @@ while scenario.t <= scenario.tmax
     
     chief = chief.approach(scenario,chief.p);
     sat = sat.approach(scenario,p(iter,:),shuttleLbnd,shuttleUbnd);
-
+    
     clf
-    for ii = 1:size(shuttleLbnd,1)
-        plotObstacle(shuttleLbnd(ii,:),shuttleUbnd(ii,:),'-k');
-    end
     plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
-    plotTrajectory(sat);
-    view(230,20)
-    pause(1e-10)
+    plotTrajectory(sat,shuttleLbnd,shuttleUbnd,5);
+%     view(230,20)
 
     scenario.t = scenario.t+scenario.dt;
 end

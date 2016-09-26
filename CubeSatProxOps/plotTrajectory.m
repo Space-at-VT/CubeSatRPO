@@ -1,35 +1,45 @@
-function p1 = plotTrajectory(sat,unit)
+function plotTrajectory(sat,lbnd,ubnd,unit)
 if nargin < 2 || isempty(unit),unit = 5;end
+fig = figure(1);
 
-p1style = strcat('.',sat.color);
-p2style = strcat(sat.color,'^');
-p4style = 'ks';
+% Plot obstacle bounds
+for ii = 1:size(lbnd,1)
+    plotObstacle(lbnd(ii,:),ubnd(ii,:),'-k');
+end
 
-figure(1)
+% Plot satellite trajectory
 hold on
-p1 = plot3(sat.y,sat.z,sat.x,p1style,'linewidth',2);
-% p2 = plot3(sat.y(1),sat.z(1),sat.x(1),p2style,'linewidth',2,'markersize',10);
-p3 = quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',2);
-p4 = plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
-
-R = unit*sat.Rib;
-
-r1 = plot3([sat.p(2),sat.p(2)+R(2,1)'],[sat.p(3),sat.p(3)+R(3,1)'],...
-    [sat.p(1),sat.p(1)+R(1,1)'],'b','linewidth',2);
-r2 = plot3([sat.p(2),sat.p(2)+R(2,2)'],[sat.p(3),sat.p(3)+R(3,2)'],...
-    [sat.p(1),sat.p(1)+R(1,2)'],'r','linewidth',2);
-r3 = plot3([sat.p(2),sat.p(2)+R(2,3)'],[sat.p(3),sat.p(3)+R(3,3)'],...
-    [sat.p(1),sat.p(1)+R(1,3)'],'g','linewidth',2);
-
+for jj = 1:length(sat)
+    p1style = strcat('.',sat.color);
+    p4style = 'ks';
+    plot3(sat.y,sat.z,sat.x,p1style,'linewidth',2);
+    quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',2);
+    plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
+    
+    % Plot satellite body axes
+    R = unit*sat.Rib;
+    plot3([sat.p(2),sat.p(2)+R(2,1)'],[sat.p(3),sat.p(3)+R(3,1)'],...
+        [sat.p(1),sat.p(1)+R(1,1)'],'b','linewidth',2);
+    plot3([sat.p(2),sat.p(2)+R(2,2)'],[sat.p(3),sat.p(3)+R(3,2)'],...
+        [sat.p(1),sat.p(1)+R(1,2)'],'r','linewidth',2);
+    plot3([sat.p(2),sat.p(2)+R(2,3)'],[sat.p(3),sat.p(3)+R(3,3)'],...
+        [sat.p(1),sat.p(1)+R(1,3)'],'g','linewidth',2);
+end
 hold off
+
+% Axis labels
 grid on
 zlabel('Radial, x [m]')
 xlabel('In-track, y [m]')
 ylabel('Cross-track, z [m]')
 title('Relative Trajectory')
-axis('tight','equal')
-camva(9)
+axis('tight','equal','vis3d')
 view(145,15)
 
-pause(0.0001)
+% Save movie
+if sat.makeMovie
+    sat = sat.addFrame(fig);
+end
+
+drawnow
 end
