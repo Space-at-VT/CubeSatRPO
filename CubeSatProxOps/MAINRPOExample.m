@@ -22,7 +22,7 @@ deputy.vmax = 0.25;
 deputy.dryMass = 13;
 deputy.fuel = 0.5;
 deputy.kp = 0.1;
-deputy.kd = 0.125;
+deputy.kd = 0.1;
 deputy.makeMovie = 0;
 
 % Deputy initial state
@@ -30,8 +30,6 @@ deputy.x = 10;
 deputy.y = -50;
 deputy.z = 25;
 deputy.vy = 0;
-
-deputy.mode = 'approach';
 
 % Proximity holding zone
 lbnd = [chief.ubnd(1)+2,chief.lbnd(2),chief.lbnd(3)];
