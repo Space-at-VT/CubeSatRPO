@@ -6,7 +6,8 @@ root = app.Personality2;
 app.visible = 0;
 
 % Initial state
-u = [-1,0,0];
+umax = 0;
+u = [1,0,0];
 x = 50;
 y = 1;
 z = 1;
@@ -17,6 +18,13 @@ dt = 1;
 
 X = [x,y,z,vx,vy,vz]';
 
-for ii = 1:1000;
-    X = HPOP(root,X,u,dt)
+for ii = 1:100
+    X = HPOP(root,X,u,umax,dt);
+    x(ii) = X(1);
+    y(ii) = X(2);
+    z(ii) = X(3);
 end
+
+plot3(x,y,z,'linewidth',2)
+grid on
+axis('equal','vis3d')

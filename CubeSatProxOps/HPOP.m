@@ -1,4 +1,4 @@
-function X = HPOP(root,X0,u,dt)
+function X = HPOP(root,X0,u,umax,dt)
 % Initial state
 x = X0(1);
 y = X0(2);
@@ -34,7 +34,7 @@ try
     root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetProp');
     root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.CoordinateSystem "Satellite/Origin Body"');
     root.ExecuteCommand('ComponentBrowser */ Duplicate "Engine Models" "Constant Thrust and Isp" "CHAMPS"');
-    root.ExecuteCommand('ComponentBrowser */ SetValue "Engine Models" "CHAMPS" Thrust 0.25 N');
+    root.ExecuteCommand(sprintf('ComponentBrowser */ SetValue "Engine Models" "CHAMPS" Thrust %f N',umax));
     root.ExecuteCommand('Astrogator */Satellite/Satellite1 InsertSegment MainSequence.SegmentList.Propagate Maneuver');
     root.ExecuteCommand('Astrogator */Satellite/Satellite1 DeleteSegment MainSequence.SegmentList.Propagate');
 catch
@@ -57,6 +57,7 @@ root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.Seg
 root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.AttitudeControl Thrust Vector');
 root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.ThrustAxes "Satellite/Origin Body"');
 root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.CoordType Cartesian');
+root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.EngineModel CHAMPS');
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.Cartesian.X %f',u(3)));
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.Cartesian.Y %f',u(2)));
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.Cartesian.Z %f',-u(1)));
