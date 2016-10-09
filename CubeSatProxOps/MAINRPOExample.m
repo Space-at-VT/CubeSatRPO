@@ -15,17 +15,19 @@ chief.bnd = [2,3,2];
 deputy = newSatellite;
 deputy.EOM = 'LERM';
 deputy.bnd = [0.1,0.3,0.2];
-deputy.d = [0.001,0.003,0.002];
+deputy.d = [0.00,0.0,0.00];
 deputy.umax = 0.25;
-deputy.Tmax = 0.004;
+deputy.Tmax = 0.007;
 deputy.vmax = 0.3;
 deputy.dryMass = 13;
 deputy.fuel = 0.5;
 deputy.kp = 0.1;
 deputy.kd = 0.1;
-% deputy.wb1 = 0.5;
-% deputy.wb2 = 0.5;
-% deputy.wb3 = -0.5;
+deputy.wb1 = 0;
+deputy.wb2 = 0;
+deputy.wb3 = 0;
+% deputy.q1 = 0.707106781186547;
+% deputy.q4 =  0.707106781186547;
 
 deputy.makeMovie = 0;
 

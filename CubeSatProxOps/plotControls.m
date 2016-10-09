@@ -5,29 +5,29 @@ tf = scenario.t;
 figure
 subplot(3,3,1)
 hold on
-stairs(t,sat.ux/sat.umax,'-b','linewidth',2)
+stairs(t,sat.ub1/sat.umax,'-b','linewidth',2)
 plot([0 tf],[0 0],'--k','linewidth',2)
 axis([0 tf -1.5 1.5])
 grid on
 title('Control Signals vs Time')
-ylabel('ux')
+ylabel('ub1')
 
 subplot(3,3,4)
 hold on
-stairs(t,sat.uy/sat.umax,'-r','linewidth',2)
+stairs(t,sat.ub2/sat.umax,'-r','linewidth',2)
 plot([0 tf],[0 0],'--k','linewidth',2)
 axis([0 tf -1.5 1.5])
 grid on
-ylabel('uy')
+ylabel('ub2')
 
 subplot(3,3,7)
 hold on
-stairs(t,sat.uz/sat.umax,'-g','linewidth',2)
+stairs(t,sat.ub3/sat.umax,'-g','linewidth',2)
 plot([0 tf],[0 0],'--k','linewidth',2)
 axis([0 tf -1.5 1.5])
 grid on
 xlabel('Time [s]')
-ylabel('uz')
+ylabel('ub3')
 
 % Velocity
 subplot(3,3,2)

@@ -11,6 +11,7 @@ scenario.dt = 1;
 sat = newSatellite;
 sat.EOM = 'LERM';
 sat.bnd = [0.3,0.3,0.3];
+sat.d = [0,0,0.01];
 sat.x = 5;
 sat.y = 0;
 sat.z = 0;

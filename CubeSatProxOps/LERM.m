@@ -1,6 +1,5 @@
-function A = LERM(scenario)
+function A = LERM(scenario,t)
 % Orginal Author: Andrew C. Rogers
-t = scenario.t;
 mu = scenario.mu;
 a = scenario.a;
 ecc = scenario.ecc;

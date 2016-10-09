@@ -34,6 +34,8 @@ xlabel('In-track, y [m]')
 ylabel('Cross-track, z [m]')
 title('Relative Trajectory')
 axis('tight','equal','vis3d')
+camva(12)
+% axis('equal','vis3d')
 view(145,15)
 
 % Save movie

@@ -22,12 +22,11 @@ for kk = 1:3:(3*Nsim) %counting position of rows (x,y,z)
         case 'HCW'
             A = HCW(scenario);
         case 'LERM'
-            A = LERM(scenario);
+            A = LERM(scenario,t);
     end
     C = A(4:6,:);
-    
+
     for nn = 1:ii     %counting no. iterations
-         
         % xdd
         Aeq(kk,jj) = C(1,1)*beta*(ii-nn)+C(1,4)*alpha;      %+x
         Aeq(kk,jj+1) = -Aeq(kk,jj);                         %-x
@@ -73,11 +72,11 @@ for kk = 1:3:(3*Nsim) %counting position of rows (x,y,z)
         jj = jj+6;
     end 
     %Update equality matrix in x,y,z (counters needed for position)
-    beq(kk) = -C(1,1)*(x0+ii*dt*vx0)-C(1,2)*(x0+ii*dt*vx0)-C(1,3)*(x0+ii*dt*vx0)...
+    beq(kk) = -C(1,1)*(x0+ii*dt*vx0)-C(1,2)*(y0+ii*dt*vy0)-C(1,3)*(x0+ii*dt*vz0)...
         -C(1,4)*vx0-C(1,5)*vy0-C(1,6)*vz0;
-    beq(kk+1) = -C(2,1)*(x0+ii*dt*vx0)-C(2,2)*(x0+ii*dt*vx0)-C(2,3)*(x0+ii*dt*vx0)...
+    beq(kk+1) = -C(2,1)*(x0+ii*dt*vx0)-C(2,2)*(y0+ii*dt*vy0)-C(2,3)*(z0+ii*dt*vz0)...
         -C(2,4)*vx0-C(2,5)*vy0-C(2,6)*vz0;
-    beq(kk+2) = -C(3,1)*(x0+ii*dt*vx0)-C(3,2)*(x0+ii*dt*vx0)-C(3,3)*(x0+ii*dt*vx0)...
+    beq(kk+2) = -C(3,1)*(x0+ii*dt*vx0)-C(3,2)*(y0+ii*dt*vy0)-C(3,3)*(z0+ii*dt*vz0)...
         -C(3,4)*vx0-C(3,5)*vy0-C(3,6)*vz0;
     
     % Update iteration counter

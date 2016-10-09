@@ -39,6 +39,9 @@ classdef newSatellite
         ux = []                     %x thrust over time,    N
         uy = []                     %y thrust over time,    N
         uz = []                     %z thrust over time,    N
+        ub1 = []                    %b1 thrust over time,   N
+        ub2 = []                    %b2 thrust over time,   N
+        ub3 = []                    %b3 thrust over time,   N
         T1 = []                     %x reaction torque,     N*m
         T2 = []                     %y reaction torque,     N*m
         T3 = []                     %z reaction torque,     N*m
@@ -70,6 +73,7 @@ classdef newSatellite
         mdot                        %Mass flow rate,        kg/s
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
+        u
         w                           %Angular velocity,      rad/s
         qb                          %Quaternions vector,
         Rib                         %Rotation matrix b2i
@@ -104,6 +108,10 @@ classdef newSatellite
         % Current velocity vector
         function v = get.v(obj)
             v = [obj.vx(end),obj.vy(end),obj.vz(end)];
+        end
+        % Current thrust vector
+        function u = get.u(obj)
+            u = [obj.ux(end),obj.uy(end),obj.uz(end)];
         end
         % Current body-frame angular velocity
         function w = get.w(obj)
@@ -162,7 +170,7 @@ classdef newSatellite
                 ubnd = [];
             end
             if sat.fuel > 0
-                w1 = 1e-1; %Thrust
+                w1 = 5e-2; %Thrust
                 w2 = 1;    %Targeting
                 Nvar = scenario.Nvar;
                 Neom = scenario.Neom;
@@ -192,18 +200,28 @@ classdef newSatellite
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
+                [Aeq,beq] = setEOMtest(Aeq,beq,sat,scenario);
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = minDistance(A,b,sat,scenario,p);
-                [A,b] = maxVelocity(A,b,sat,scenario);
+                [A,b] = minDistancetest(A,b,sat,scenario,p);
+                [A,b] = maxVelocitytest(A,b,sat,scenario);
                 
-                for ii = 1:size(lbnd,1)
-                    [A,b] = addObstacle(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
-                end
+%                 [A1,b1] = maxVelocity([],[],sat,scenario)
+%                 [A2,b2] = maxVelocitytest([],[],sat,scenario)
+%                 [A1,b1] = minDistance([],[],sat,scenario,p)
+%                 [A2,b2] = minDistancetest([],[],sat,scenario,p)                
+%                 [A1,b1] = setEOM([],[],sat,scenario);
+%                 [A2,b2] = setEOMtest([],[],sat,scenario);
+%                 [A1,b1] = addObstacle([],[],sat,scenario,lbnd(1,:),ubnd(1,:),1);
+%                 [A2,b2] = addObstacletest([],[],sat,scenario,lbnd(1,:),ubnd(1,:),1);
 
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
+                for ii = 1:size(lbnd,1)
+                    [A,b] = addObstacletest(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
+                end
+                
+
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',0.5);
                 [u,~,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
                 sat = signalsProp(sat,scenario,u,exitflag);
@@ -263,11 +281,21 @@ iter = length(sat.x);
 % Solver exit flag
 sat.flag(iter) = exitflag;
 
+
 % Control signals
-u = round(u);
-sat.ux(iter) = sat.umax*(u(1)-u(2));
-sat.uy(iter) = sat.umax*(u(3)-u(4));
-sat.uz(iter) = sat.umax*(u(5)-u(6));
+ub = round([u(1)-u(2)
+            u(3)-u(4) 
+            u(5)-u(6)]);
+ui = sat.Rib*ub;       
+
+sat.ub1(iter) = sat.umax*ub(1);
+sat.ub2(iter) = sat.umax*ub(2);
+sat.ub3(iter) = sat.umax*ub(3);
+
+sat.ux(iter) = sat.umax*ui(1);
+sat.uy(iter) = sat.umax*ui(2);
+sat.uz(iter) = sat.umax*ui(3);
+
 ax = u(Nvar+1);
 ay = u(Nvar+2);
 az = u(Nvar+3);
@@ -287,6 +315,9 @@ sat.z(iter+1) = sat.z(iter)+sat.vz(iter)*dt;
 sat.ux(iter+1) = 0;
 sat.uy(iter+1) = 0;
 sat.uz(iter+1) = 0;
+sat.ub1(iter+1) = 0;
+sat.ub2(iter+1) = 0;
+sat.ub3(iter+1) = 0;
 
 % Propagate attitude
 sat = attitudeProp(sat,scenario);
@@ -379,9 +410,9 @@ if sat.T3(iter) > sat.Tmax,   sat.T3(iter) = sat.Tmax;  end
 if sat.T3(iter) < -sat.Tmax,  sat.T3(iter) = -sat.Tmax; end
 
 % Total applied torque with thruster offset moment
-M(1) = sat.uz(iter)*sat.d(2)-sat.uy(iter)*sat.d(3)+sat.T1(iter);
-M(2) = sat.ux(iter)*sat.d(3)-sat.uz(iter)*sat.d(1)+sat.T2(iter);
-M(3) = sat.uy(iter)*sat.d(1)-sat.ux(iter)*sat.d(2)+sat.T3(iter);
+M(1) = sat.ub3(iter)*sat.d(2)-sat.ub2(iter)*sat.d(3)+sat.T1(iter);
+M(2) = sat.ub1(iter)*sat.d(3)-sat.ub3(iter)*sat.d(1)+sat.T2(iter);
+M(3) = sat.ub2(iter)*sat.d(1)-sat.ub1(iter)*sat.d(2)+sat.T3(iter);
 
 % New angular velocity
 I = sat.I;
