@@ -1,5 +1,5 @@
 function [Anew,bnew] = minDistance(Aold,bold,sat,scenario,pf)
-%% Approach target cost function contraints
+% Approach target cost function contraints
 x0 = sat.x(end);   y0 = sat.y(end);   z0 = sat.z(end);   %assign positions
 vx0 = sat.vx(end); vy0 = sat.vy(end); vz0 = sat.vz(end); %assign velocities
 xf = pf(1);        yf = pf(2);        zf = pf(3);

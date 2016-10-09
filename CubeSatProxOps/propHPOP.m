@@ -6,11 +6,11 @@ root = app.Personality2;
 app.visible = 0;
 
 % Initial state
-umax = 0;
+umax = 10;
 u = [1,0,0];
-x = 50;
-y = 1;
-z = 1;
+x = 10;
+y = 0;
+z = 0;
 vx = 0;
 vy = 0;
 vz = 0;
@@ -19,7 +19,7 @@ dt = 1;
 X = [x,y,z,vx,vy,vz]';
 
 for ii = 1:100
-    X = HPOP(root,X,u,umax,dt);
+    X = HPOP(root,X,u,umax,dt)
     x(ii) = X(1);
     y(ii) = X(2);
     z(ii) = X(3);

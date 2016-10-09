@@ -15,12 +15,12 @@ clear
 
 p0 = [0,0,0];
 pt = [1,0,1];
-vt = (pt-p0)/norm(pt-p0)
+vt = (pt-p0)/norm(pt-p0);
 
 x = pt-p0;
 
-th3 = atan2d(vt(2),vt(1))
-th2 = atan2d(vt(3),norm([vt(1),vt(2)]))
+th3 = atan2d(vt(2),vt(1));
+th2 = atan2d(vt(3),norm([vt(1),vt(2)]));
 
 R = rot(th2*pi/180,2)*rot(th3*pi/180,3)
 

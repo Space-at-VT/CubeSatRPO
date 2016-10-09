@@ -86,7 +86,3 @@ qx = [0 -q(3) q(2)
 dqdt = 1/2*[qx+q4*eye(3);-q']*w;
 dydt = [dwdt;dqdt];
 end
-% S = [0 -w(3) w(2)
-%      w(3) 0 -w(1)
-%      -w(2) w(1) 0];
-%dqdt = -1/2*[S;w']*q(1:3)+1/2*q(4)*[eye(3);zeros(1,3)]*w

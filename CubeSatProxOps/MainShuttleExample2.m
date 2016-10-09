@@ -1,7 +1,7 @@
 clear,clc
 close all
 
-STK = 0;
+STK = 1;
 
 scenario = newScenario;
 scenario.tmax = 400;
@@ -16,6 +16,7 @@ sat.y = 0;
 sat.z = 0;
 sat.vmax = 0.3;
 sat.umax = 1;
+sat.Tmax = 0.01;
 sat.dryMass = 30;
 sat.fuel = 4.5;
 sat.kp = 0.1;

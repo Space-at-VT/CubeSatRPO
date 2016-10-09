@@ -42,7 +42,8 @@ catch
 end
 
 % Initial state
-% root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.Dry_Mass 13 kg')
+% root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.DryMass 130 kg');
+% root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.FuelMass 30 kg');
 
 root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Epoch 0 EpSec');
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.X %f m',z));
@@ -63,6 +64,17 @@ root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequ
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.FiniteMnvr.Cartesian.Z %f',-u(1)));
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Maneuver.StoppingConditions.Duration.TripValue %f sec',dt'));
 root.ExecuteCommand('Astrogator */Satellite/Satellite1 RunMCS');
+
+root.ExecuteCommand('Animate * Reset');
+root.ExecuteCommand('VO * ViewFromTo Normal From Satellite/Satellite1 To Satellite/Origin');
+root.ExecuteCommand('VO */Satellite/Origin Pass3D OrbitLead None OrbitTrail None');
+root.ExecuteCommand('VO */Satellite/Satellite1 Pass3D OrbitLead None OrbitTrail None');
+root.ExecuteCommand('VO * ObjectStateInWin Show off Object Satellite/Satellite1 WindowId 1');
+
+dir_photo = strcat(cd,'\snap');
+root.ExecuteCommand('VO * SnapFrame SetValues Format jpeg');
+root.ExecuteCommand(sprintf('VO * SnapFrame ToFile "%s"',dir_photo));
+
 
 % New state
 RICdp = sat.DataProviders.Item('RIC Coordinates');

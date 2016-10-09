@@ -15,14 +15,18 @@ chief.bnd = [2,3,2];
 deputy = newSatellite;
 deputy.EOM = 'LERM';
 deputy.bnd = [0.1,0.3,0.2];
-deputy.d = [0.01,0.03,0.01];
+deputy.d = [0.001,0.003,0.002];
 deputy.umax = 0.25;
-deputy.Tmax = 0.1;
-deputy.vmax = 0.25;
+deputy.Tmax = 0.004;
+deputy.vmax = 0.3;
 deputy.dryMass = 13;
 deputy.fuel = 0.5;
 deputy.kp = 0.1;
 deputy.kd = 0.1;
+% deputy.wb1 = 0.5;
+% deputy.wb2 = 0.5;
+% deputy.wb3 = -0.5;
+
 deputy.makeMovie = 0;
 
 % Deputy initial state
