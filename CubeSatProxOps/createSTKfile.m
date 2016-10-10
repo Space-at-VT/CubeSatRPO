@@ -1,5 +1,6 @@
 function createSTKfile(sat,scenario)
 
+% Trajectory
 filename = strcat(sat.name,'.e');
 fileID = fopen(filename,'w');
 fprintf(fileID,'stk.v.8.0\r\n\r\nBEGIN Ephemeris\r\n\r\n');
@@ -17,4 +18,20 @@ end
 fprintf(fileID,'END Ephemeris');
 fclose(fileID);
 
+% Attitude
+filename = strcat(sat.name,'.a');
+fileID = fopen(filename,'w');
+fprintf(fileID,'stk.v.8.0\r\n\r\nBEGIN Attitude\r\n\r\n');
+fprintf(fileID,'NumberOfAttitudePoints %d\r\n',length(sat.x));
+fprintf(fileID,'CoordinateSystem Custom Body Satellite/Origin\r\n\r\n');
+fprintf(fileID,'AttitudeTimeQuaternions\r\n\r\n');
+
+t = 0;
+for ii = 1:length(sat.x);
+    fprintf(fileID,'%f %f %f %f %f %f %f\r\n',t,sat.q2(ii),-sat.q3(ii),-sat.q1(ii),sat.q4(ii));
+    t = t+scenario.dt;
+end
+
+fprintf(fileID,'END Attitude');
+fclose(fileID);
 end

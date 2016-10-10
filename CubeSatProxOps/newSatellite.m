@@ -62,6 +62,8 @@ classdef newSatellite
         pt = [0,0,0]                %Attitude point target, m
         
         %% Debug
+        u
+        J = [];
         flag = []                   %Exit flag
         makeMovie = 0;              %Save movie struct
         vid
@@ -73,7 +75,6 @@ classdef newSatellite
         mdot                        %Mass flow rate,        kg/s
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
-        u
         w                           %Angular velocity,      rad/s
         qb                          %Quaternions vector,
         Rib                         %Rotation matrix b2i
@@ -110,9 +111,6 @@ classdef newSatellite
             v = [obj.vx(end),obj.vy(end),obj.vz(end)];
         end
         % Current thrust vector
-        function u = get.u(obj)
-            u = [obj.ux(end),obj.uy(end),obj.uz(end)];
-        end
         % Current body-frame angular velocity
         function w = get.w(obj)
             w = [obj.wb1(end),obj.wb2(end),obj.wb3(end)]';
@@ -220,11 +218,22 @@ classdef newSatellite
                     [A,b] = addObstacletest(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
                 end
                 
-
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',0.5);
-                [u,~,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+                iter = length(sat.x);
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
+                [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
-                sat = signalsProp(sat,scenario,u,exitflag);
+                if isempty(u) == 1
+                    beep
+                    sat.u = sat.u(7:end);
+                    sat.J(iter) = sat.J(iter-1);
+                    sat.flag(iter) = 3;
+                else
+                    sat.u = u;
+                    sat.J(iter) = fval;
+                    sat.flag(iter) = exitflag;
+                end
+         
+                sat = signalsProp(sat,scenario);
             else
                 sat = driftProp(sat,scenario);
             end
@@ -262,10 +271,21 @@ classdef newSatellite
                 [A,b] = holdProximity(A,b,sat,scenario,lbnd,ubnd);
                 [A,b] = maxVelocity(A,b,sat,scenario);
                 
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
-                [u,~,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+                iter = length(sat.x);
+                try
+                    options = optimoptions(@intlinprog,'Display','None','MaxTime',5);
+                    [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+                    sat.u = u;
+                    sat.J(iter) = fval'*u;
+                    sat.flag(iter) = 3;
+                catch
+                    beep
+                    sat.u = sat.u(7:end);
+                    sat.J(iter) = sat.J(iter-1);
+                    sat.flag(iter) = 3;
+                end
                 
-                sat = signalsProp(sat,scenario,u,exitflag);
+                sat = signalsProp(sat,scenario);
             else
                 sat = driftProp(sat,scenario);
             end
@@ -274,13 +294,10 @@ classdef newSatellite
 end
 
 %% Convert solver signals to propagation
-function sat = signalsProp(sat,scenario,u,exitflag)
+function sat = signalsProp(sat,scenario)
+u = sat.u;
 Nvar = scenario.Nvar;
 iter = length(sat.x);
-
-% Solver exit flag
-sat.flag(iter) = exitflag;
-
 
 % Control signals
 ub = round([u(1)-u(2)
@@ -312,6 +329,7 @@ sat.y(iter+1) = sat.y(iter)+sat.vy(iter)*dt;
 sat.z(iter+1) = sat.z(iter)+sat.vz(iter)*dt;
 
 % Resize control vector
+sat.J(iter+1) = sat.J(iter);
 sat.ux(iter+1) = 0;
 sat.uy(iter+1) = 0;
 sat.uz(iter+1) = 0;
@@ -382,16 +400,24 @@ dt = scenario.dt;
 % satellite at user-defined point.
 % Else the satellite just minimizes divergence from the inertial axes.
 if sat.point
-%     vt = (sat.pt-sat.p)/norm(sat.pt-sat.p);
-%     th3 = atan2(vt(2),vt(1));
-%     th2 = atan2(vt(3),norm([vt(1),vt(2)]));
-%     R = rot(th2,2)*rot(th3,3);
-%     q4t = 1/2*sqrt(1+trace(R));
-%     qt = 1/4/q4t*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
-% 
-%     Tx = -sat.kp*(sat.q1(iter)-qt(1))-sat.kd*sat.wb1(iter);
-%     Ty = -sat.kp*(sat.q2(iter)-qt(2))-sat.kd*sat.wb2(iter);
-%     Tz = -sat.kp*(sat.q3(iter)-qt(3))-sat.kd*sat.wb3(iter);   
+    vt = (sat.pt-sat.p)/norm(sat.pt-sat.p);
+    th3 = atan2(vt(2),vt(1));
+    th2 = atan2(vt(3),norm([vt(1),vt(2)]));
+    R = rot(th2,2)*rot(th3,3);
+    
+    q4t = 1/2*sqrt(1+trace(R))+1e-3;
+    qt = 1/(4*q4t)*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
+    qd = [q4t -qt(3) qt(2)
+          qt(3) q4t -qt(1)
+         -qt(2) qt(1) q4t
+         -qt(1) -qt(2) -qt(3)]*sat.w;
+    
+    sat.T1 = -sat.kp*(sat.q1(iter)-qt(1))-sat.kd*sat.wb1(iter);
+    sat.T2 = -sat.kp*(sat.q2(iter)-qt(2))-sat.kd*sat.wb2(iter);
+    sat.T3 = -sat.kp*(sat.q3(iter)-qt(3))-sat.kd*sat.wb3(iter);
+    sat.T1(iter+1) = 0;
+    sat.T2(iter+1) = 0;
+    sat.T3(iter+1) = 0;
 else
     sat.T1(iter) = -sat.kp*(sat.q1(iter))-sat.kd*sat.wb1(iter);
     sat.T2(iter) = -sat.kp*(sat.q2(iter))-sat.kd*sat.wb2(iter);

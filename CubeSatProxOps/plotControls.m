@@ -111,4 +111,12 @@ xlabel('Time [s]')
 ylabel('Quaternions')
 legend({'q1','q2','q3','q4'})
 title('Attitude Quaternions vs Time')
+
+figure
+plot(t,sat.J,'k','linewidth',2)
+axis([0 tf 0 1],'auto y')
+grid on
+xlabel('Time [s]')
+ylabel('Cost Function, J')
+
 end

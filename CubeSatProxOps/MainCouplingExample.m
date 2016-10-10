@@ -13,7 +13,7 @@ deputy.bnd = [0.1,0.3,0.2];
 deputy.d = [0,0,0];
 deputy.umax = 0.25;
 deputy.Tmax = 0.004;
-deputy.vmax = 30;
+deputy.vmax = 2;
 deputy.dryMass = 13;
 deputy.fuel = 0.5;
 deputy.kp = 0;
@@ -24,7 +24,7 @@ deputy.wb1 = 0.1;
 % deputy.wb2 = 0.5;
 % deputy.wb3 = -0.5;
 
-p = [0,1000,0];
+p = [0,100,0];
 
 iter = 0;
 while scenario.t <= scenario.tmax
