@@ -1,7 +1,7 @@
 clear,clc
 close all
 
-STK = 1;
+STK = 0;
 
 scenario = newScenario;
 scenario.tmax = 300;

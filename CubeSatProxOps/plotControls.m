@@ -2,6 +2,7 @@ function plotControls(sat,scenario)
 t = 0:scenario.dt:scenario.t;
 tf = scenario.t;
 
+%%
 figure
 subplot(3,3,1)
 hold on
@@ -71,6 +72,7 @@ grid on
 xlabel('Time [s]')
 ylabel('z [m]')
 
+%%
 figure
 subplot(3,1,1)
 hold on
@@ -112,8 +114,38 @@ ylabel('Quaternions')
 legend({'q1','q2','q3','q4'})
 title('Attitude Quaternions vs Time')
 
+%%
 figure
-plot(t,sat.J,'k','linewidth',2)
+subplot(4,1,1)
+hold on
+stairs(t,sat.ub1/sat.umax,'-k','linewidth',1)
+plot([0 tf],[0 0],'--k','linewidth',1)
+axis([0 tf -1.5 1.5])
+grid on
+title('Control Signals vs Time')
+xlabel('Time [s]')
+ylabel('u_{b1}')
+
+subplot(4,1,2)
+hold on
+stairs(t,sat.ub2/sat.umax,'-k','linewidth',1)
+plot([0 tf],[0 0],'--k','linewidth',1)
+axis([0 tf -1.5 1.5])
+grid on
+xlabel('Time [s]')
+ylabel('u_{b2}')
+
+subplot(4,1,3)
+hold on
+stairs(t,sat.ub3/sat.umax,'-k','linewidth',1)
+plot([0 tf],[0 0],'--k','linewidth',1)
+axis([0 tf -1.5 1.5])
+grid on
+xlabel('Time [s]')
+ylabel('u_{b3}')
+
+subplot(4,1,4)
+plot(t,sat.J,'k','linewidth',1)
 axis([0 tf 0 1],'auto y')
 grid on
 xlabel('Time [s]')
