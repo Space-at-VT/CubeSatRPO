@@ -15,10 +15,10 @@ chief.bnd = [2,3,2];
 deputy = newSatellite;
 deputy.EOM = 'LERM';
 deputy.bnd = [0.1,0.3,0.2];
-deputy.d = [0.00,0.0,0.00];
+deputy.d = [0.001,0.003,0.002];
 deputy.umax = 0.25;
 deputy.Tmax = 0.007;
-deputy.vmax = 0.3;
+deputy.vmax = 0.5;
 deputy.dryMass = 13;
 deputy.fuel = 0.5;
 deputy.kp = 0.1;
@@ -33,8 +33,8 @@ deputy.makeMovie = 0;
 
 % Deputy initial state
 deputy.x = 10;
-deputy.y = -50;
-deputy.z = 25;
+deputy.y = -10;
+deputy.z = 5;
 deputy.vy = 0;
 
 % Proximity holding zone
@@ -51,7 +51,7 @@ while scenario.t <= scenario.tmax
     % Mode checks
     if separation(deputy.p,center) < 0.25
         deputy.mode = 'maintain';
-        scenario.T = 30;
+        scenario.T = 40;
     end
     if deputy.p(1) > ubnd(1) || deputy.p(2) > ubnd(2) || deputy.p(3) > ubnd(3) ||...
             deputy.p(1) < lbnd(1) || deputy.p(2) < lbnd(2) || deputy.p(3) < lbnd(3)
@@ -67,7 +67,7 @@ while scenario.t <= scenario.tmax
     end
     
     clf
-    plotTrajectory(deputy,chief.lbnd,chief.ubnd,5);
+    plotTrajectory(deputy,chief.lbnd,chief.ubnd,3);
     
     scenario.t = scenario.t+scenario.dt;
 end

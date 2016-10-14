@@ -3,7 +3,7 @@ close all
 
 % Time and orbit parameters
 scenario = newScenario;
-scenario.tmax = 60;
+scenario.tmax = 600;
 scenario.T = 15;
 
 % Deputy parameters

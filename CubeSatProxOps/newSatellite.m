@@ -63,6 +63,7 @@ classdef newSatellite
         
         %% Debug
         u
+        a
         J = [];
         flag = []                   %Exit flag
         makeMovie = 0;              %Save movie struct
@@ -223,16 +224,17 @@ classdef newSatellite
                 [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
                 if isempty(u) == 1
-                    beep
                     sat.u = sat.u(7:end);
+                    sat.a = sat.a(4:end);
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
                 else
-                    sat.u = u;
+                    sat.u = u(1:Nvar);
+                    sat.a = u(Nvar+1:Nvar+3);
                     sat.J(iter) = fval;
                     sat.flag(iter) = exitflag;
                 end
-         
+                
                 sat = signalsProp(sat,scenario);
             else
                 sat = driftProp(sat,scenario);
@@ -264,25 +266,30 @@ classdef newSatellite
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
+                [Aeq,beq] = setEOMtest(Aeq,beq,sat,scenario);
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = holdProximity(A,b,sat,scenario,lbnd,ubnd);
-                [A,b] = maxVelocity(A,b,sat,scenario);
-                
+                [A,b] = holdProximitytest(A,b,sat,scenario,lbnd,ubnd);
+                [A,b] = maxVelocitytest(A,b,sat,scenario);
+%                 
+%                 [A1,b1] = holdProximity([],[],sat,scenario,lbnd,ubnd);
+%                 [A2,b2] = holdProximitytest([],[],sat,scenario,lbnd,ubnd);
+                               
                 iter = length(sat.x);
-                try
-                    options = optimoptions(@intlinprog,'Display','None','MaxTime',5);
-                    [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
-                    sat.u = u;
-                    sat.J(iter) = fval'*u;
-                    sat.flag(iter) = 3;
-                catch
-                    beep
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);%
+                [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+
+                if isempty(u) == 1
                     sat.u = sat.u(7:end);
+                    sat.a = sat.a(4:end);
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
+                else
+                    sat.u = u(1:Nvar);
+                    sat.a = u(Nvar+1:end);
+                    sat.J(iter) = fval;
+                    sat.flag(iter) = exitflag;
                 end
                 
                 sat = signalsProp(sat,scenario);
@@ -313,9 +320,12 @@ sat.ux(iter) = sat.umax*ui(1);
 sat.uy(iter) = sat.umax*ui(2);
 sat.uz(iter) = sat.umax*ui(3);
 
-ax = u(Nvar+1);
-ay = u(Nvar+2);
-az = u(Nvar+3);
+% ax = u(Nvar+1);
+% ay = u(Nvar+2);
+% az = u(Nvar+3);
+ax = sat.a(1);
+ay = sat.a(2);
+az = sat.a(3);
 
 % New velocity
 dt = scenario.dt;
