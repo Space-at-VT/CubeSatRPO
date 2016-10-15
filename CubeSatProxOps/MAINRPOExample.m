@@ -3,8 +3,11 @@ close all
 
 % Time and orbit parameters
 scenario = newScenario;
-scenario.tmax = 240;
 scenario.T = 15;
+scenario.a = 7000e3;
+scenario.tmax = 240;
+% scenario.tmax = scenario.TP/2;
+
 
 % Chief bounds
 chief = newSatellite;
@@ -17,6 +20,7 @@ deputy.EOM = 'LERM';
 deputy.bnd = [0.1,0.3,0.2];
 deputy.d = [0.001,0.003,0.002];
 deputy.umax = 0.25;
+% deputy.umax = 0;
 deputy.Tmax = 0.007;
 deputy.vmax = 0.5;
 deputy.dryMass = 13;
@@ -32,9 +36,9 @@ deputy.wb3 = 0;
 deputy.makeMovie = 0;
 
 % Deputy initial state
-deputy.x = 10;
+deputy.x = -30;
 deputy.y = -10;
-deputy.z = 5;
+deputy.z = 0;
 deputy.vy = 0;
 
 % Proximity holding zone

@@ -1,9 +1,8 @@
-function [Anew,bnew] = minDistance(Aold,bold,sat,scenario,pf)
+function [Anew,bnew] = minDistancetest(Aold,bold,sat,scenario,pf)
 % Approach target cost function contraints
-x0 = sat.x(end);   y0 = sat.y(end);   z0 = sat.z(end);   %assign positions
-vx0 = sat.vx(end); vy0 = sat.vy(end); vz0 = sat.vz(end); %assign velocities
-xf = pf(1);        yf = pf(2);        zf = pf(3);
 dt = scenario.dt;
+R = sat.Rib;
+
 Nsim = scenario.Nsim;
 Nvar = scenario.Nvar;
 Neom = scenario.Neom;
@@ -13,50 +12,28 @@ beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 % Target objective absolute value
 A = zeros(6,Ntotal);
 b = zeros(6,1);
-jj = 1;         %counting position of columns (in u())
-for nn = 1:Nsim %counting no. iterations
-    A(1,jj) = beta*(Nsim-nn);    %(+x, +x)
-    A(1,jj+1) = -beta*(Nsim-nn); %(+x, -x)
+      
+
+for ii = 1:Nsim 
+    jj = 6*ii-5;
+    % Positive bound
+    A(1:3,jj:2:jj+5) = R*beta*(Nsim-ii);
+    A(1:3,jj+1:2:jj+5) = -R*beta*(Nsim-ii);
     
-    A(2,jj+2) = beta*(Nsim-nn);  %(+y, +y)
-    A(2,jj+3) = -beta*(Nsim-nn); %(+y, -y)
-    
-    A(3,jj+4) = beta*(Nsim-nn);  %(+z, +z)
-    A(3,jj+5) = -beta*(Nsim-nn); %(+z, -z)
-    
-    A(4,jj) = -beta*(Nsim-nn);   %(-x, +x)
-    A(4,jj+1) = beta*(Nsim-nn);  %(-x, -x)
-    
-    A(5,jj+2) = -beta*(Nsim-nn); %(-y, +y)
-    A(5,jj+3) = beta*(Nsim-nn);  %(-y, -y)
-    
-    A(6,jj+4) = -beta*(Nsim-nn); %(-z, +z)
-    A(6,jj+5) = beta*(Nsim-nn);  %(-z, -z)
-    
-    if nn > 1
-        A(1,Nvar+3*(nn-2)+1) = dt^2*(Nsim-nn+1);  %(+x, xhcw)
-        A(2,Nvar+3*(nn-2)+2) = dt^2*(Nsim-nn+1);  %(+y, yhcw)
-        A(3,Nvar+3*(nn-2)+3) = dt^2*(Nsim-nn+1);  %(+z, zhcw)
-        A(4,Nvar+3*(nn-2)+1) = -dt^2*(Nsim-nn+1); %(-x, xhcw)
-        A(5,Nvar+3*(nn-2)+2) = -dt^2*(Nsim-nn+1); %(-y, yhcw)
-        A(6,Nvar+3*(nn-2)+3) = -dt^2*(Nsim-nn+1); %(-z, zhcw)
+    % Equations of motion
+    if ii > 1
+        A(1:3,Nvar+3*(ii-2)+1:Nvar+3*(ii-2)+3) = R*dt^2*(Nsim-ii+1);
     end       
-    jj = jj+6;
 end
+% Negative bound
+A(4:6,:) = -A(1:3,:);
 
-A(1,Nvar+Neom+1) = -1; %(+x, xtarget)
-A(2,Nvar+Neom+2) = -1; %(+y, ytarget)
-A(3,Nvar+Neom+3) = -1; %(+z, ztarget)
-A(4,Nvar+Neom+1) = -1; %(-x, xtarget)
-A(5,Nvar+Neom+2) = -1; %(-y, ytarget)
-A(6,Nvar+Neom+3) = -1; %(-z, ztarget)
+% Set equivalence
+A(1:6,Nvar+Neom+1:Nvar+Neom+3) = -[eye(3);eye(3)];
 
-b(1) = -x0+xf-Nsim*dt*vx0;    %(+x)
-b(2) = -y0+yf-Nsim*dt*vy0;    %(+y)
-b(3) = -z0+zf-Nsim*dt*vz0;    %(+z)
-b(4) = -(-x0+xf-Nsim*dt*vx0); %(-x)
-b(5) = -(-y0+yf-Nsim*dt*vy0); %(-y)
-b(6) = -(-z0+zf-Nsim*dt*vz0); %(-z)
+% Initial conditions
+b(1:3) = (-sat.p+pf-Nsim*dt*sat.v)';
+b(4:6) = -(-sat.p+pf-Nsim*dt*sat.v)';
 
 % Update matrices
 Anew = [Aold;A];

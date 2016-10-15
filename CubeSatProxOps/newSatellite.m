@@ -199,12 +199,12 @@ classdef newSatellite
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOMtest(Aeq,beq,sat,scenario);
+                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = minDistancetest(A,b,sat,scenario,p);
-                [A,b] = maxVelocitytest(A,b,sat,scenario);
+                [A,b] = minDistance(A,b,sat,scenario,p);
+                [A,b] = maxVelocity(A,b,sat,scenario);
                 
 %                 [A1,b1] = maxVelocity([],[],sat,scenario)
 %                 [A2,b2] = maxVelocitytest([],[],sat,scenario)
@@ -216,7 +216,7 @@ classdef newSatellite
 %                 [A2,b2] = addObstacletest([],[],sat,scenario,lbnd(1,:),ubnd(1,:),1);
 
                 for ii = 1:size(lbnd,1)
-                    [A,b] = addObstacletest(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
+                    [A,b] = addObstacle(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
                 end
                 
                 iter = length(sat.x);
@@ -266,12 +266,12 @@ classdef newSatellite
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOMtest(Aeq,beq,sat,scenario);
+                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = holdProximitytest(A,b,sat,scenario,lbnd,ubnd);
-                [A,b] = maxVelocitytest(A,b,sat,scenario);
+                [A,b] = holdProximity(A,b,sat,scenario,lbnd,ubnd);
+                [A,b] = maxVelocity(A,b,sat,scenario);
 %                 
 %                 [A1,b1] = holdProximity([],[],sat,scenario,lbnd,ubnd);
 %                 [A2,b2] = holdProximitytest([],[],sat,scenario,lbnd,ubnd);
@@ -297,6 +297,73 @@ classdef newSatellite
                 sat = driftProp(sat,scenario);
             end
         end
+        function phaseManeuver(sat,scenario,Xf)           
+            Nvar = scenario.Nvar;
+            Neom = scenario.Neom;
+            dt = scenario.dt;
+            
+            % Function coefficients
+            f = [dt*ones(Nvar,1); %Control thrusts
+                zeros(Neom,1);
+                zeros(3,1)];
+            
+            % Parameter bounds, lower & upper
+            lb = [zeros(Nvar,1);   %Control thrusts
+                -inf*ones(Neom,1);
+                zeros(3,1)];
+            
+            ub = [ones(Nvar,1);   %Control thrusts
+                inf*ones(Neom,1);
+                ones(3,1)];
+            
+            Nsim = scenario.Nsim;
+            
+            % Equality contraints
+            Aeq = []; beq = [];
+            [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
+            [Aeq,beq] = setPhaseState(Aeq,beq,sat,scenario,Xf);
+            
+            % Inequality contraints
+            A = [];   b = [];
+            
+            intcon = [];
+            
+            % options = optimoptions(@linprog);
+            [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
+            
+            u = zeros(3,Nsim);
+            a = zeros(3,Nsim);
+            v = zeros(3,Nsim);
+            x = zeros(3,Nsim);
+            v(:,1) = sat.v;
+            x(:,1) = sat.p;
+            
+            jj = 1;
+            kk = 1;
+            for ii = 1:Nsim
+                u(:,ii) = sat.umax*(U(jj:2:jj+5)-U(jj+1:2:jj+5));
+                a(:,ii) = U(Nvar+kk:Nvar+kk+2);
+                v(:,ii+1) = v(:,ii)+(u(:,ii)/sat.m+a(:,ii))*dt;
+                x(:,ii+1) = x(:,ii)+v(:,ii)*dt;
+                u(:,ii+1) = zeros(3,1);
+                jj = jj+6;
+                kk = kk+3;
+            end
+            
+            % Impulse correction
+            tt = dt*ones(3,Nsim);
+            for ii = 1:3
+                for jj = 1:Nsim
+                    if u(ii,jj) ~= 0 && u(ii,jj) < 0.99*sat.umax || u(ii,jj) > 0.99*sat.umax
+                        tt(ii,jj) = u(ii,jj)*dt/sat.umax;
+                    end
+                end
+            end
+            sat.fuel = sat.fuel-sum(u,2)*sat.mdot;
+
+        end
+        
+        
     end
 end
 
