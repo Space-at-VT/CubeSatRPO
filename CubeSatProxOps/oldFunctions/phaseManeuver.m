@@ -4,7 +4,7 @@ close all
 
 scenario = newScenario;
 scenario.a = 7000e3;
-tf = scenario.TP*3/4;
+tf = scenario.TP;
 scenario.tmax = tf;
 scenario.T = tf;
 scenario.dt = 10;
@@ -16,10 +16,10 @@ sat.EOM = 'LERM';
 sat.x = 0;
 sat.y = -500;
 sat.z = -200;
-sat.vy = -2*scenario.n*sat.x;
+sat.vy = 0;
 
-x0 = 100;
-Xf = [x0,0,0,0,-2*scenario.n*x0,-0.1];
+x0 = 50;
+Xf = [x0,0,0,0,-2*scenario.n*x0,0.01];
 
 Nvar = scenario.Nvar;
 Neom = scenario.Neom;
@@ -44,7 +44,7 @@ Nsim = scenario.Nsim;
 
 % Equality contraints
 Aeq = []; beq = [];
-[Aeq,beq] = setEOMtest(Aeq,beq,sat,scenario);
+[Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
 [Aeq,beq] = setPhaseState(Aeq,beq,sat,scenario,Xf);
 
 % Inequality contraints

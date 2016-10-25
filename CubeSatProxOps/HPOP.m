@@ -13,18 +13,20 @@ try
 catch
     scenario = root.CurrentScenario;
 end
-root.ExecuteCommand('SetAnalysisTimePeriod * "1 Jul 2012" "2 Jul 2012"');
-root.ExecuteCommand('SetEpoch * "1 Jul 2012"');
+root.ExecuteCommand('SetAnalysisTimePeriod * "9 Oct 2016 16:00:00" "9 Oct 2016 17:00:00"');
+root.ExecuteCommand('SetEpoch * "9 Oct 2016 16:00:00"');
 root.ExecuteCommand('Units_Set * All Distance "Meters"');
-
 
 % Origin
 try
     root.ExecuteCommand('New / */Satellite Origin');
     root.ExecuteCommand('Astrogator */Satellite/Origin SetProp');
     root.ExecuteCommand('Astrogator */Satellite/Origin SetValue MainSequence.SegmentList.Initial_State.InitialState.Epoch 0 EpSec');
+    root.ExecuteCommand('Astrogator */Satellite/Origin SetValue MainSequence.SegmentList.Initial_State.CoordinateType "Keplerian"');
+    root.ExecuteCommand('Astrogator */Satellite/Origin SetValue MainSequence.SegmentList.Initial_State.InitialState.Keplerian.TA 180');
     root.ExecuteCommand('Astrogator */Satellite/Origin RunMCS');
     root.ExecuteCommand('Astrogator */Satellite/Origin SetValue MainSequence.SegmentList.Propagate.StoppingConditions.Duration.TripValue 1 sec');
+    root.ExecuteCommand('VO */Satellite/Origin Model File "C:/Program Files/AGI/STK 11/STKData/VO/Models/Space/cubesat_2u.dae"');
 catch   
 end
 
@@ -46,11 +48,11 @@ end
 % root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.FuelMass 30 kg');
 
 root.ExecuteCommand('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Epoch 0 EpSec');
-root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.X %f m',z));
-root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Y %f m',y));
+root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.X %f m',y));
+root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Y %f m',z));
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Z %f m',-x));
-root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Vx %f m/sec',vz));
-root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Vy %f m/sec',vy));
+root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Vx %f m/sec',vy));
+root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Vy %f m/sec',vz));
 root.ExecuteCommand(sprintf('Astrogator */Satellite/Satellite1 SetValue MainSequence.SegmentList.Initial_State.InitialState.Cartesian.Vz %f m/sec',-vx));
 
 % Maneuver
@@ -68,6 +70,7 @@ root.ExecuteCommand('Astrogator */Satellite/Satellite1 RunMCS');
 root.ExecuteCommand('Animate * Reset');
 root.ExecuteCommand('VO * ViewFromTo Normal From Satellite/Satellite1 To Satellite/Origin');
 root.ExecuteCommand('VO */Satellite/Origin Pass3D OrbitLead None OrbitTrail None');
+root.ExecuteCommand('Astrogator */Satellite/Origin ClearDWCGraphics');
 root.ExecuteCommand('VO */Satellite/Satellite1 Pass3D OrbitLead None OrbitTrail None');
 root.ExecuteCommand('VO * ObjectStateInWin Show off Object Satellite/Satellite1 WindowId 1');
 

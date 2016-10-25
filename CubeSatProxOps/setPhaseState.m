@@ -30,10 +30,8 @@ end
 
 % Initial conditions
 beq(1:3) = (xf(1:3)-sat.p-Nsim*dt*sat.v)';
-beq(4:6) = (xf(4:6)-dt*sat.v)';
+beq(4:6) = (xf(4:6)-sat.v)';
 
-% Aeq(6,:) = zeros(1,Ntotal);
-% beq(6) = 0;
 
 % Update matrices
 Aeqnew = [Aeqold;Aeq];

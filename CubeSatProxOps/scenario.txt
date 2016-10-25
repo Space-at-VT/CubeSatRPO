@@ -1,0 +1,16 @@
+umax 	0.25
+Tmax 	0.007
+dryMass 11.5
+fuel 	0.5
+x 	500
+y 	0
+z 	0
+vx 	0
+vy 	0
+vz 	0
+a 	7000000
+ecc 	0
+inc 	0
+Om 	0
+om 	0
+nu 	0

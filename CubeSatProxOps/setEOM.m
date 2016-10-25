@@ -1,4 +1,4 @@
-function [Aeqnew,beqnew] = setEOMtest(Aeqold,beqold,sat,scenario)
+function [Aeqnew,beqnew] = setEOM(Aeqold,beqold,sat,scenario)
 % Solve for equations of motion
 R = sat.Rib;
 
