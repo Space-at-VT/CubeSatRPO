@@ -1,7 +1,7 @@
 clear,clc
 close all
 
-STK = 0;
+STK = 1;
 
 scenario = newScenario;
 scenario.tmax = 300;
@@ -21,9 +21,9 @@ sat.umax = 0.25;
 sat.Tmax = 0.007;
 sat.dryMass = 11.5;
 sat.fuel = 0.5;
-sat.kp = 0.1;
+sat.kp = 0.12;
 sat.kd = 0.1;
-sat.point = 0;
+sat.point = 1;
 sat.pt = [0,0,0];
 
 chief = newSatellite;
@@ -61,17 +61,16 @@ while scenario.t <= scenario.tmax
         end
     end
     
-    chief = chief.approach(scenario,chief.p);
-    sat = sat.approach(scenario,p(iter,:),shuttleLbnd,shuttleUbnd);
+    chief.approach(scenario,chief.p);
+    sat.approach(scenario,p(iter,:),shuttleLbnd,shuttleUbnd);
     
     clf
     plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
-    plotTrajectory(sat,shuttleLbnd,shuttleUbnd,5);
-%     view(230,20)
+    sat.plotTrajectory(shuttleLbnd,shuttleUbnd,5);
 
     scenario.t = scenario.t+scenario.dt;
 end
-plotControls(sat,scenario)
+sat.plotControls
 save('ShuttleInspection')
 
 if STK
@@ -105,7 +104,7 @@ if STK
         root.ExecuteCommand(sprintf('SetAttitude */Satellite/%s File "%s"',sat(ii).name,afile));
         root.ExecuteCommand(sprintf('VO */Satellite/%s Pass3D OrbitLead None OrbitTrail None',sat(ii).name));
         root.ExecuteCommand(sprintf('VO */Satellite/%s Model File "C:/Program Files/AGI/STK 11/STKData/VO/Models/Space/cubesat_6u.dae"',sat(ii).name));
-%         root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 6U-Cubesat Yaw 0 180',sat(ii).name));
+        root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 6U-Cubesat Yaw 0 180',sat(ii).name));
     end
     
     root.ExecuteCommand('VO * ViewFromTo Normal From Satellite/Inspection To Satellite/Inspection');

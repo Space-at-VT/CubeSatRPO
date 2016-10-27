@@ -31,26 +31,26 @@ deputy.vy = 0;
 tspan = scenario.TP;
 
 x0 = 100;
-Xf = [x0,-300,0,0,-2*scenario.n*x0-0.01,0.25];
+Xf = [x0,-300,0,0,-2*scenario.n*x0-0.005,0.25];
 deputy.phaseManeuver(scenario,Xf,tspan,10);
 deputy.propagate(scenario,4*tspan);
 
-Xf = [10,0,0,0,0,0];
+Xf = [-10,0,0,0,0,0];
 deputy.phaseManeuver(scenario,Xf,tspan,10);
 plotTrajectory(deputy,chief.lbnd,chief.ubnd,3);
 
-dock = [0,0,1];
-while true
-    clc
-    fprintf('Time: %5.1f\n',deputy.t(end))
-    
-    deputy.approach(scenario,dock,chief.lbnd,chief.ubnd);
-    
-    % Deputy propagation (MPC)
-    if separation(deputy.p,dock) < 0.1,break,end
-            
-    clf
-    deputy.plotTrajectory(chief.lbnd,chief.ubnd,3);
-end
+% dock = [0,0,1];
+% while true
+%     clc
+%     fprintf('Time: %5.1f\n',deputy.t(end))
+%     
+%     deputy.approach(scenario,dock,chief.lbnd,chief.ubnd);
+%     
+%     % Deputy propagation (MPC)
+%     if separation(deputy.p,dock) < 0.1,break,end
+%             
+%     clf
+%     deputy.plotTrajectory(chief.lbnd,chief.ubnd,3);
+% end
 
 deputy.plotControls

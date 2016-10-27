@@ -51,13 +51,10 @@ classdef newSatellite < handle
         wb1 = 0                     %Angular velocity       rad/s
         wb2 = 0                     %over time,             rad/s
         wb3 = 0                     %                       rad/s
-        %         th1 = 0                   %Euler Angles           rad
-        %         th2 = 0                   %                       rad
-        %         th3 = 0                   %                       rad
         q1 = 0                      %Quaternions
         q2 = 0
         q3 = 0
-        q4 = 1;
+        q4 = 1;                     %Scalar
         
         point = 0                   %Attitude pointing y/n, binary
         pt = [0,0,0]                %Attitude point target, m
@@ -86,16 +83,6 @@ classdef newSatellite < handle
         I                           %Moments of Inertia,    kg/m^2
     end
     methods
-        % Constructor
-        function obj = satellite(umax,ISP,dryMass,fuel)
-            if nargin > 0
-                obj.umax = umax;
-                obj.ISP = ISP;
-                obj.dryMass = dryMass;
-                obj.fuel = fuel;
-            end
-        end
-        
         % Total mass (Dependent)
         function m = get.m(obj)
             m = obj.fuel+obj.dryMass;
@@ -207,38 +194,28 @@ classdef newSatellite < handle
                 [A,b] = minDistance(A,b,sat,scenario,p);
                 [A,b] = maxVelocity(A,b,sat,scenario);
                 
-                %                 [A1,b1] = maxVelocity([],[],sat,scenario)
-                %                 [A2,b2] = maxVelocitytest([],[],sat,scenario)
-                %                 [A1,b1] = minDistance([],[],sat,scenario,p)
-                %                 [A2,b2] = minDistancetest([],[],sat,scenario,p)
-                %                 [A1,b1] = setEOM([],[],sat,scenario);
-                %                 [A2,b2] = setEOMtest([],[],sat,scenario);
-                %                 [A1,b1] = addObstacle([],[],sat,scenario,lbnd(1,:),ubnd(1,:),1);
-                %                 [A2,b2] = addObstacletest([],[],sat,scenario,lbnd(1,:),ubnd(1,:),1);
-                
                 for ii = 1:size(lbnd,1)
                     [A,b] = addObstacle(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
                 end
                 
                 iter = length(sat.x);
                 options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
-                [u,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
+                [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
-                if isempty(u) == 1
+                if isempty(U) == 1
                     sat.u = sat.u(7:end);
                     sat.a = sat.a(4:end);
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
                 else
-                    sat.u = u(1:Nvar);
-                    sat.a = u(Nvar+1:Nvar+3);
+                    sat.u = U(1:Nvar);
+                    sat.a = U(Nvar+1:Nvar+Neom);
                     sat.J(iter) = fval;
                     sat.flag(iter) = exitflag;
                 end
                 sat.signalsProp(scenario);
             else
-                sat.driftProp(scenario);
-                
+                sat.driftProp(scenario);                
             end
             sat.attitudeProp(scenario);
             sat.t(iter+1) = sat.t(iter)+scenario.dt;
@@ -381,8 +358,8 @@ classdef newSatellite < handle
             
             % Control signals
             ub = ([u(1)-u(2)
-                u(3)-u(4)
-                u(5)-u(6)]);
+                   u(3)-u(4)
+                   u(5)-u(6)]);
             ui = sat.Rib*ub;
             
             sat.ub1(iter) = sat.umax*ub(1);
@@ -483,20 +460,22 @@ classdef newSatellite < handle
             % Else the satellite just minimizes divergence from the inertial axes.
             if sat.point
                 vt = (sat.pt-sat.p)/norm(sat.pt-sat.p);
-                th3 = atan2(vt(2),vt(1));
-                th2 = atan2(vt(3),norm([vt(1),vt(2)]));
-                R = rot(th2,2)*rot(th3,3);
+                th3 = -atan2(vt(2),vt(1));
+                th2 = -atan2(vt(3),norm([vt(1),vt(2)]));
+                R = rot(th3,3)*rot(th2,2);
                 
-                q4t = 1/2*sqrt(1+trace(R))+1e-3;
-                qt = 1/(4*q4t)*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
-                qd = [q4t -qt(3) qt(2)
-                    qt(3) q4t -qt(1)
-                    -qt(2) qt(1) q4t
-                    -qt(1) -qt(2) -qt(3)]*sat.w;
+                qr = zeros(4,1);
+                qr(4) = 1/2*sqrt(1+trace(R))+1e-3;
+                qr(1:3) = 1/(4*qr(4))*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
+                qA = [qr(4)  qr(3) -qr(2) -qr(1)
+                     -qr(3)  qr(4)  qr(1)  qr(2)
+                      qr(2) -qr(1)  qr(4) -qr(3)
+                      qr(1)  qr(2)  qr(3)  qr(4)];
+                qe = qA*sat.qb;
                 
-                sat.T1 = -sat.kp*(sat.q1(iter)-qt(1))-sat.kd*sat.wb1(iter);
-                sat.T2 = -sat.kp*(sat.q2(iter)-qt(2))-sat.kd*sat.wb2(iter);
-                sat.T3 = -sat.kp*(sat.q3(iter)-qt(3))-sat.kd*sat.wb3(iter);
+                sat.T1(iter) = -sat.kp*(qe(1)*qe(4))-sat.kd*sat.wb1(iter);
+                sat.T2(iter) = -sat.kp*(qe(2)*qe(4))-sat.kd*sat.wb2(iter);
+                sat.T3(iter) = -sat.kp*(qe(3)*qe(4))-sat.kd*sat.wb3(iter);
                 sat.T1(iter+1) = 0;
                 sat.T2(iter+1) = 0;
                 sat.T3(iter+1) = 0;
@@ -528,11 +507,6 @@ classdef newSatellite < handle
             sat.wb1(iter+1) = sat.wb1(iter)+((I(2)-I(3))/I(1)*w(2)*w(3)+M(1)/I(1))*dt;
             sat.wb2(iter+1) = sat.wb2(iter)+((I(3)-I(1))/I(2)*w(1)*w(3)+M(2)/I(2))*dt;
             sat.wb3(iter+1) = sat.wb3(iter)+((I(1)-I(2))/I(3)*w(1)*w(2)+M(3)/I(3))*dt;
-            
-            % Unused, could be defined as euler angles if needed
-            % sat.th1(iter+1) = sat.th1(iter)+sat.wb1(iter)*dt;
-            % sat.th2(iter+1) = sat.th2(iter)+sat.wb2(iter)*dt;
-            % sat.th3(iter+1) = sat.th3(iter)+sat.wb3(iter)*dt;
             
             % Solve for quaternion rate of change
             q = sat.qb(1:3);
@@ -570,7 +544,7 @@ classdef newSatellite < handle
                 p1style = strcat('-',sat.color);
                 p4style = 'ks';
                 plot3(sat.y,sat.z,sat.x,p1style,'linewidth',1.5);
-                quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
+%                 quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
                 plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
                 
                 % Plot satellite body axes
@@ -592,13 +566,7 @@ classdef newSatellite < handle
             title('Relative Trajectory')
             axis('tight','equal','vis3d')
             camva(10)
-            % axis('equal','vis3d')
             view(145,15)
-            
-            % Save movie
-            if sat.makeMovie
-                sat = sat.addFrame(fig);
-            end
             
             drawnow
         end
@@ -760,4 +728,3 @@ classdef newSatellite < handle
         end
     end
 end
-

@@ -43,7 +43,7 @@ for ii = 1:3:(3*Nsim)
     end 
     
     % Initial Conditions
-    beq(ii:ii+2) = -R*C(:,1:3)*(sat.p+nn*dt*sat.v)'-R*C(:,4:6)*(sat.v)';
+    beq(ii:ii+2) = -C(:,1:3)*(sat.p+nn*dt*sat.v)'-C(:,4:6)*(sat.v)';
         
     % Update time
     t = t+dt;

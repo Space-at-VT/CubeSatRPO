@@ -5,7 +5,7 @@ close all
 scenario = newScenario;
 scenario.T = 15;
 scenario.a = 7000e3;
-scenario.tmax = 240;
+scenario.tmax = scenario.TP;
 % scenario.tmax = scenario.TP/2;
 
 
@@ -19,36 +19,27 @@ deputy = newSatellite;
 deputy.EOM = 'LERM';
 deputy.bnd = [0.1,0.3,0.2];
 deputy.d = [0.001,0.003,0.002];
-deputy.umax = 0.25;
-% deputy.umax = 0;
+deputy.umax = 0.05;
 deputy.Tmax = 0.007;
-deputy.vmax = 0.5;
+deputy.vmax = 0.1;
 deputy.dryMass = 13;
 deputy.fuel = 0.5;
 deputy.kp = 0.1;
-deputy.kd = 0.1;
-deputy.wb1 = 0;
-deputy.wb2 = 0;
-deputy.wb3 = 0;
-% deputy.q1 = 0.707106781186547;
-% deputy.q4 =  0.707106781186547;
-
-deputy.makeMovie = 0;
+deputy.kd = 0.11;
+deputy.point = 1;
 
 % Deputy initial state
-deputy.x = -30;
-deputy.y = -10;
-deputy.z = 0;
-deputy.vy = 0;
+deputy.x = 25;
+deputy.y = -15;
+deputy.z = 10;
+deputy.vy = -2*scenario.n*deputy.x;
 
 % Proximity holding zone
 lbnd = [chief.ubnd(1)+2,chief.lbnd(2),chief.lbnd(3)];
 ubnd = [chief.ubnd(1)+10,chief.ubnd(2),chief.ubnd(3)];
 center = (ubnd+lbnd)/2;
 
-iter = 0;
-while scenario.t <= scenario.tmax
-    iter = iter+1;
+while true
     clc
     fprintf('Time: %5.1f\n',scenario.t)
     
@@ -65,19 +56,16 @@ while scenario.t <= scenario.tmax
     
     % Deputy propagation (MPC)
     if strcmp(deputy.mode,'approach')
-        deputy = deputy.approach(scenario,center,chief.lbnd,chief.ubnd);
+        deputy.approach(scenario,center,chief.lbnd,chief.ubnd);
     elseif strcmp(deputy.mode,'maintain')
-        deputy = deputy.maintain(scenario,lbnd,ubnd);
+        deputy.maintain(scenario,lbnd,ubnd);
     end
     
     clf
-    plotTrajectory(deputy,chief.lbnd,chief.ubnd,3);
+    deputy.plotTrajectory(chief.lbnd,chief.ubnd,3);
     
-    scenario.t = scenario.t+scenario.dt;
+    if separation(deputy.p,center) < 0.1
+        break
+    end
 end
-
-plotControls(deputy,scenario)
-save('RPOExample')
-if deputy.makeMovie
-    deputy = deputy.renderFrames;
-end
+deputy.plotControls
