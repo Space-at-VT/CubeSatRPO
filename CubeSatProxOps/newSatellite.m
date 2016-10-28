@@ -293,8 +293,8 @@ classdef newSatellite < handle
         
         %% Non-MPC Long-Range Maneuver (not real time)
         function sat = phaseManeuver(sat,scenario,Xf,tf,dt)
-            Told = scenario.T;
-            dtold = scenario.dt;
+            T0 = scenario.T;
+            dt0 = scenario.dt;
             scenario.T = tf;
             scenario.dt = dt;
             
@@ -328,27 +328,28 @@ classdef newSatellite < handle
             
             % options = optimoptions(@linprog);
             [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
-            %             U = Aeq\beq;
+            scenario.dt = dt0;
+            scenario.T = T0;
             
             jj = 1;
             for ii = 1:6:Nvar
-                iter = length(sat.x);
-                sat.J(iter) = fval;
-                sat.flag(iter) = exitflag;
-                
-                sat.u = U(ii:ii+5);
-                sat.a = U(Nvar+jj:Nvar+jj+2);
-                
-                sat = signalsProp(sat,scenario);
-                sat = attitudeProp(sat,scenario);
-                
-                sat.t(iter+1) = sat.t(iter)+scenario.dt;
+                for kk = 1:(dt/dt0)
+                    iter = length(sat.x);
+                    sat.J(iter) = fval;
+                    sat.flag(iter) = exitflag;
+
+                    sat.u(1:2:6) = sat.Rbi*U(ii:2:ii+5);
+                    sat.u(2:2:6) = sat.Rbi*U(ii+1:2:ii+5);
+                    sat.a = U(Nvar+jj:Nvar+jj+2);
+
+                    sat = signalsProp(sat,scenario);
+                    sat = attitudeProp(sat,scenario);
+                    sat.t(iter+1) = sat.t(iter)+scenario.dt;
+                end                
                 jj = jj+3;
             end
             
-            scenario.T = Told;
-            scenario.dt = dtold;
-            
+    
         end
         
         %% Convert solver signals to propagation
@@ -512,8 +513,8 @@ classdef newSatellite < handle
             q = sat.qb(1:3);
             q4 = sat.qb(4);
             qx = [0   -q(3) q(2)
-                q(3) 0   -q(1)
-                -q(2) q(1) 0];
+                  q(3) 0   -q(1)
+                 -q(2) q(1) 0];
             dqdt = 1/2*[qx+q4*eye(3);-q']*w;
             
             % Normalize quaternions to account for numerical error (Ensures quaternions

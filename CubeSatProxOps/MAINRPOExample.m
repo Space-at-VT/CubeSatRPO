@@ -6,12 +6,9 @@ scenario = newScenario;
 scenario.T = 15;
 scenario.a = 7000e3;
 scenario.tmax = scenario.TP;
-% scenario.tmax = scenario.TP/2;
-
 
 % Chief bounds
 chief = newSatellite;
-chief.EOM = 'LERM';
 chief.bnd = [2,3,2];
 
 % Deputy parameters

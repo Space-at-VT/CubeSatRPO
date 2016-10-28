@@ -1,4 +1,4 @@
-function [Anew,bnew] = addObstacletest(Aold,bold,sat,scenario,lbnd,ubnd,N)
+function [Anew,bnew] = addObstacle(Aold,bold,sat,scenario,lbnd,ubnd,N)
 R = sat.Rib;
 
 dt = scenario.dt;
@@ -11,7 +11,7 @@ beta = sat.umax*dt^2/sat.m; %velocity multiplier
 M = 1e6;
 
 % Safety buffer
-d = 0.5;
+d = 0.1;
 lbnd = lbnd-d;
 ubnd = ubnd+d;
 

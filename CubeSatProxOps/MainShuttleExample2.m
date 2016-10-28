@@ -4,7 +4,7 @@ close all
 STK = 1;
 
 scenario = newScenario;
-scenario.tmax = 300;
+scenario.tmax = 60;
 scenario.T = 15;
 scenario.dt = 1;
 
@@ -12,7 +12,7 @@ sat = newSatellite;
 sat.EOM = 'LERM';
 
 sat.bnd = [0.1,0.3,0.2];
-sat.d = [0.01,0.01,0.01];
+% sat.d = [0.001,0.003,0.002];
 sat.x = 5;
 sat.y = 0;
 sat.z = 0;
@@ -21,7 +21,7 @@ sat.umax = 0.25;
 sat.Tmax = 0.007;
 sat.dryMass = 11.5;
 sat.fuel = 0.5;
-sat.kp = 0.12;
+sat.kp = 0.1;
 sat.kd = 0.1;
 sat.point = 1;
 sat.pt = [0,0,0];
