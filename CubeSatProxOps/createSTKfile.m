@@ -1,6 +1,5 @@
 function createSTKfile(sat,scenario)
-
-% Trajectory
+%% Trajectory
 filename = strcat(sat.name,'.e');
 fileID = fopen(filename,'w');
 fprintf(fileID,'stk.v.8.0\r\n\r\nBEGIN Ephemeris\r\n\r\n');
@@ -18,7 +17,7 @@ end
 fprintf(fileID,'END Ephemeris');
 fclose(fileID);
 
-% Attitude
+%% Attitude
 filename = strcat(sat.name,'.a');
 fileID = fopen(filename,'w');
 fprintf(fileID,'stk.v.8.0\r\n\r\nBEGIN Attitude\r\n\r\n');
@@ -27,12 +26,8 @@ fprintf(fileID,'CoordinateSystem Custom RIC Satellite/Origin\r\n\r\n');
 % fprintf(fileID,'AttitudeTimeQuatAngVels\r\n\r\n');
 fprintf(fileID,'AttitudeTimeQuaternions\r\n\r\n');
 
-% t = 0;
 for ii = 1:length(sat.x);
-%     fprintf(fileID,'%f %f %f %f %f %f %f\r\n',t,sat.q2(ii),-sat.q3(ii),...
-%         -sat.q1(ii),sat.q4(ii),sat.wb2(ii),-sat.wb3(ii),-sat.wb1(ii));
-    fprintf(fileID,'%f %f %f %f %f %f %f\r\n',sat.t(ii),sat.q1(ii),sat.q2(ii),sat.q3(ii),sat.q4(ii));
-%     t = t+scenario.dt;
+    fprintf(fileID,'%f %f %f %f %f\r\n',sat.t(ii),sat.q1(ii),sat.q2(ii),sat.q3(ii),sat.q4(ii));
 end
 
 fprintf(fileID,'END Attitude');

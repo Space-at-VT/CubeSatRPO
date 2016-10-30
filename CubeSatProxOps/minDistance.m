@@ -1,4 +1,4 @@
-function [Anew,bnew] = minDistancetest(Aold,bold,sat,scenario,pf)
+function [Anew,bnew] = minDistance(Aold,bold,sat,scenario,pf)
 % Approach target cost function contraints
 dt = scenario.dt;
 R = sat.Rib;
@@ -6,6 +6,7 @@ R = sat.Rib;
 Nsim = scenario.Nsim;
 Nvar = scenario.Nvar;
 Neom = scenario.Neom;
+Nslack = scenario.Nslack;
 Ntotal = scenario.Ntotal;
 beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 
@@ -29,7 +30,7 @@ end
 A(4:6,:) = -A(1:3,:);
 
 % Set equivalence
-A(1:6,Nvar+Neom+1:Nvar+Neom+3) = -[eye(3);eye(3)];
+A(1:6,Nvar+Neom+1:Nvar+Neom+Nslack) = -[eye(3);eye(3)];
 
 % Initial conditions
 b(1:3) = (-sat.p+pf-Nsim*dt*sat.v)';

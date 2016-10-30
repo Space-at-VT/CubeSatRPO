@@ -1,6 +1,7 @@
-function [Aeqnew,beqnew] = setEOM(Aeqold,beqold,sat,scenario)
 % Solve for equations of motion
-R = sat.Rib;
+function [Aeqnew,beqnew] = setEOM(Aeqold,beqold,sat,scenario,R)
+if nargin < 5 || isempty(R),R = sat.Rib;end  
+
 
 dt = scenario.dt;
 Nsim = scenario.Nsim;
@@ -8,7 +9,7 @@ Nvar = scenario.Nvar;
 Ntotal = scenario.Ntotal;
 alpha = sat.umax*dt/sat.m;  %position multiplier
 beta = sat.umax*dt^2/sat.m; %velocity multiplier
-t = scenario.t;
+t = sat.t(end);
 
 % Add inequality contraints
 Aeq = zeros(3*Nsim,Ntotal);

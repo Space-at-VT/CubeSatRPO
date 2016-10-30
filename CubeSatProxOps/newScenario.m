@@ -9,6 +9,7 @@ classdef newScenario
         tmax = 5000             %s
         T = 20                  %s
         Nobj = 0
+        Nslack = 0;
         a = 6738e3              %m
         ecc = 0
         inc                     %deg
@@ -58,7 +59,7 @@ classdef newScenario
         end
         % Total number of variables
         function Ntotal = get.Ntotal(obj)
-            Ntotal = obj.Nvar+obj.Neom+3+obj.Nbi;
+            Ntotal = obj.Nvar+obj.Neom+obj.Nslack+obj.Nbi;
         end
     end
 end
