@@ -7,59 +7,73 @@ scenario.T = 15;
 scenario.a = 7000e3;
 
 % RSO bounds
-RSO = newSatellite;
+RSO = newSatellite(scenario);
 RSO.bnd = [0.1,0.2,0.1];
 
 % Deputy parameters
-sat = newSatellite;
+sat = newSatellite(scenario);
 sat.EOM = 'LERM';
 sat.bnd = [0.1,0.3,0.2];
 sat.d = 0.02*sat.bnd;
 sat.umax = 0.1;
 sat.Tmax = 0.007;
-sat.vmax = 0.1;
+sat.vmax = 0.05;
 sat.dryMass = 11.5;
 sat.fuel = 0.5;
 sat.kp = 0.1;
 sat.kd = 0.1;
 sat.point = 1;
+sat.pt = [0,0,0];
 
 % Deputy initial state
-sat.x = 200;
+sat.x = 600;
 sat.y = -100;
 sat.z = 100;
-tspan = scenario.TP;
+tspan = sat.scenario.TP;
 
-% 
-Xf = [100,0,0,0,-2*scenario.n*100,0];
-sat.phaseManeuver3(scenario,Xf,tspan,30);
-sat.propagate(scenario,tspan);
+% First relative ellipse
+Xf = [40,0,0,0,-2*sat.scenario.n*40,0.05];
+sat.phaseManeuver3(Xf,tspan,30);
+sat.propagate(tspan);
 
-Xf = [5,0,0,0,-2*scenario.n*5,0];
-sat.phaseManeuver3(scenario,Xf,tspan,10);
-sat.propagate(scenario,tspan);
-
+% Second relative ellipse
+Xf = [5,0,0,0,-2*sat.scenario.n*5,0];
+sat.phaseManeuver3(Xf,tspan,10);
+sat.propagate(tspan);
 sat.plotTrajectory(RSO.lbnd,RSO.ubnd,3);
 
-dock = [0.25,0,0];
+% Proximity operations
+dock = [0.5,0,0];
+thold = 0;
+tmax = 30;
 while true
-    clc
-    fprintf('Time: %5.1f\n',sat.t(end)) 
+    clc,fprintf('Time: %5.1f\n',sat.t(end))
     
-    sat.approach(scenario,dock,RSO.lbnd,RSO.ubnd);
-    RSO.approach(scenario,[0,0,0]);
-    if separation(sat.p,dock) < 0.1,break,end
-
-    clf
-    sat.plotTrajectory(RSO.lbnd,RSO.ubnd,3);
+    if separation(sat.p,dock) < 0.1
+        sat.maintain(dock-0.1,dock+0.1);
+        thold = thold+sat.scenario.dt;
+    else
+        sat.approach(dock,RSO.lbnd,RSO.ubnd);
+        thold = 0;
+    end
+    
+    if thold > tmax,break,end
+    
+    clf,sat.plotTrajectory(RSO.lbnd,RSO.ubnd,3);
 end
 sat.plotControls;
+RSO.propagate(sat.t(end));
 
-RSO.propagate(scenario,sat.t(end));
-sat.renderVideo('movie1.avi',RSO.lbnd,RSO.ubnd,25);
+% Create movie
+rec = 0;
+if rec
+    sat.renderVideo('movie1.avi',RSO.lbnd,RSO.ubnd,25);
+end
 
-STK = 0;
+% Export to STK
+STK = 1;
 if STK
+    pause(0.1)
     sat.name = 'MEV';
     RSO.name = 'RSO';
     createSTKfile(sat,scenario);
@@ -91,7 +105,7 @@ if STK
     root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 6U-Cubesat Yaw 0 180',sat.name));
     
     root.ExecuteCommand('VO * ViewFromTo Normal From Satellite/MEV To Satellite/MEV');
-    root.ExecuteCommand('VO */Satellite/RSO DynDataText DataDisplay "RIC" Show On PreData "Satellite/MEV"');
+    root.ExecuteCommand('VO */Satellite/RSO DynDataText DataDisplay "RIC" Show On PreData "Satellite/MEV" Color yellow');
     root.ExecuteCommand('SetAnimation * AnimationMode xRealTime');
     root.ExecuteCommand('Animate * Reset');
 end

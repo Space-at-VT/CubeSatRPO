@@ -1,4 +1,5 @@
-function [Anew,bnew] = maxVelocitytest(Aold,bold,sat,scenario)
+function [Anew,bnew] = maxVelocity(Aold,bold,sat)
+scenario = sat.scenario;
 R = sat.Rib;
 
 dt = scenario.dt;

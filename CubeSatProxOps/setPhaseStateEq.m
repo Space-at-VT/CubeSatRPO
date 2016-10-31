@@ -1,5 +1,5 @@
-function [Aeqnew,beqnew] = setPhaseStateEq(Aeqold,beqold,sat,scenario,xf)
-% Approach target cost function contraints
+function [Aeqnew,beqnew] = setPhaseStateEq(Aeqold,beqold,sat,xf)
+scenario = sat.scenario;
 dt = scenario.dt;
 R = eye(3);
 

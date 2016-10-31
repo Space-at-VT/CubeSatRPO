@@ -1,21 +1,24 @@
 %% scenario defines the name, epoch, and current time of a simulation
 classdef newScenario
     properties
-        name = ''
+        %% Model
         epoch = datestr(now)
         mu = 3.986004418e14;    %m^3/s^2
-        t = 0                   %s
         dt = 1                  %s
-        tmax = 5000             %s
-        T = 20                  %s
+        T = 15                  %s
+        
+        %% Origin
+        a = 6738e3              %m
+        ecc = 0                 %deg
+        inc = 0                 %deg
+        Om = 0                  %deg
+        om = 0                  %deg
+        nu = 0                  %deg
+        
+        %% Solver
         Nobj = 0
         Nslack = 0;
-        a = 6738e3              %m
-        ecc = 0
-        inc                     %deg
-        Om                      %deg
-        om                      %deg
-        nu = 0                  %deg
+
     end
     properties (Dependent)
         n                       %1/s
@@ -43,7 +46,7 @@ classdef newScenario
         end
         % Number of simulation time steps
         function Nsim = get.Nsim(obj)
-            Nsim = length(obj.t:obj.dt:(obj.t+obj.T))-1;
+            Nsim = length(0:obj.dt:obj.T)-1;
         end
         % Number of control variables
         function Nvar = get.Nvar(obj)

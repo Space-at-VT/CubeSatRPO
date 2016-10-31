@@ -1,5 +1,6 @@
-function [Anew,bnew] = minDistance(Aold,bold,sat,scenario,pf)
+function [Anew,bnew] = minDistance(Aold,bold,sat,pf)
 % Approach target cost function contraints
+scenario = sat.scenario;
 dt = scenario.dt;
 R = sat.Rib;
 

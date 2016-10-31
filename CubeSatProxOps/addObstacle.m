@@ -1,4 +1,5 @@
-function [Anew,bnew] = addObstacle(Aold,bold,sat,scenario,lbnd,ubnd,N)
+function [Anew,bnew] = addObstacle(Aold,bold,sat,lbnd,ubnd,N)
+scenario = sat.scenario;
 R = sat.Rib;
 
 dt = scenario.dt;

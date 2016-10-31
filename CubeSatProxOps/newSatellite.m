@@ -1,19 +1,15 @@
 %% New Satellite
-% Translational trajcetory generation is all the same as the summer.
-% Organized to be more easily commanded. All attitude modeling is still in
-% development. Basic damping and PD in included for perturbations caused
-% from the off-centering of thrusters. As of 9/8 the model is not coupled
-% with translational movement. The linearity of the model may limit the
-% accuracy of coupling rotation with translation.
-
 classdef newSatellite < handle
     %% Default properties of a basic 6u cubesat
     properties
-        %% Graphics
+        %% Model
         name = 'CubeSat'            %Satellite name
-        EOM = 'LERM'                 %Relative motion model
+        EOM = 'LERM'                %Relative motion model
         mode = 'approach'           %Satellite objective
         color = 'b'                 %Graph color
+        
+        %% Scenario
+        scenario = newScenario
         
         %% Satellite parameters
         umax = 0.25                 %Thrust,                N
@@ -22,15 +18,14 @@ classdef newSatellite < handle
         fuel = 0.5                  %Fuel mass,             kg
         vmax = 0.5                  %Max velocity,          m/s
         bnd = [0.1,0.3,0.2]         %Satellite size,        m
-        Tmax = 0.25                 %Max reaction torque
+        Tmax = 0.007                %Max reaction torque    Nm
         kp = 0.1                    %Position damping
-        kd = 0.7                    %Velocity damping
-        ki = 0.3                    %Integral damping
-        d = [0,0,0]        %Thruster misalignment
-        % moment arm,           m
+        kd = 0.1                    %Velocity damping
+        d = [0,0,0]                 %Thruster misalignment  m
+        dv = 0                      %DeltaV                 m/s
         
         %% Trajectory
-        t = 0
+        t = 0                       %Time,                  s
         x = 0                       %x position over time,  m
         y = 0                       %y position over time,  m
         z = 0                       %z position over time,  m
@@ -49,20 +44,19 @@ classdef newSatellite < handle
         
         %% Attitude
         wb1 = 0                     %Angular velocity       rad/s
-        wb2 = 0                     %over time,             rad/s
+        wb2 = 0                     %over time              rad/s
         wb3 = 0                     %                       rad/s
         q1 = 0                      %Quaternions
-        q2 = 0
-        q3 = 0
-        q4 = 1;                     %Scalar
+        q2 = 0                      %over time
+        q3 = 0                      %
+        q4 = 1;                     %Quaternion scalar
+        point = 0                   %Attitude pointing      binary
+        pt = [0,0,0]                %Attitude point target  m
         
-        point = 0                   %Attitude pointing y/n, binary
-        pt = [0,0,0]                %Attitude point target, m
-        
-        %% Debug
-        u
-        a
-        J = [];
+        %% Solver
+        u = []                      %Current u output
+        eom = []                    %Current state ouput
+        J = []                      %Cost fucntion over time
         flag = []                   %Exit flag
         
     end
@@ -77,9 +71,16 @@ classdef newSatellite < handle
         Rbi                         %Rotation matrix i2b
         ubnd                        %Upper bound,           m
         lbnd                        %Lower bound,           m
-        I                           %Moments of Inertia,    kg/m^2
+        I                           %Moments of Inertia     kg/m^2
+        dv_ideal                    %Theoretical total dv   m/s        
     end
     methods
+        % Insert satellite in scenario
+        function obj = newSatellite(scenario)
+            if nargin > 0
+                obj.scenario = scenario;
+            end
+        end
         % Total mass (Dependent)
         function m = get.m(obj)
             m = obj.fuel(end)+obj.dryMass;
@@ -132,55 +133,59 @@ classdef newSatellite < handle
             I(2) = 1/12*obj.m*(obj.bnd(1)^2+obj.bnd(3)^2);
             I(3) = 1/12*obj.m*(obj.bnd(1)^2+obj.bnd(2)^2);
         end
+        % Ideal total dv
+        function dv_ideal = get.dv_ideal(obj)
+            dv_ideal = obj.ISP*9.81*...
+                log((obj.dryMass+obj.fuel(1))/obj.dryMass);
+        end
 
         %% Basic point to point movement with collision avoidance
-        function sat = approach(sat,scenario,p,lbnd,ubnd)
+        function sat = approach(sat,p,lbnd,ubnd)
             if nargin < 4 || isempty(lbnd)
-                lbnd = [];
-                ubnd = [];
+                lbnd = [];ubnd = [];
             end
             if sat.fuel > 0
-                w1 = 5e-2; %Thrust
-                w2 = 1;    %Targeting
-                Nvar = scenario.Nvar;
-                Neom = scenario.Neom;
-                scenario.Nslack = 3;
-                scenario.Nobj = size(lbnd,1);
-                Nslack = scenario.Nslack;
-                Nbi = scenario.Nbi;
-                Ntotal = scenario.Ntotal;
+                w1 = 5e-2;                  %Thrust weight
+                w2 = 1;                     %Targeting weight
+                sat.scenario.Nslack = 3;
+                sat.scenario.Nobj = size(lbnd,1);
+                Nvar = sat.scenario.Nvar;
+                Neom = sat.scenario.Neom;
+                Nslack = sat.scenario.Nslack;
+                Nbi = sat.scenario.Nbi;
+                Ntotal = sat.scenario.Ntotal;
+                dt = sat.scenario.dt;
                 
                 % Function coefficients
-                f = [w1*scenario.dt*ones(Nvar,1); %Control thrusts
-                    zeros(Neom,1);       %HCW accelerations
-                    w2*ones(Nslack,1);        %Target distance
-                    zeros(Nbi,1)];       %Collision avoidance
+                f = [w1*dt*ones(Nvar,1);    %Control thrusts
+                     zeros(Neom,1);         %EOM accelerations
+                     w2*ones(Nslack,1);     %Target distance
+                     zeros(Nbi,1)];         %Collision avoidance
                 
                 % Parameter bounds, lower & upper
-                lb = [zeros(Nvar,1);   %Control thrusts
-                    -inf*ones(Neom,1); %HCW accelerations
-                    zeros(Nslack,1);        %Target distance
-                    zeros(Nbi,1)];     %Collision avoidance
-                
-                ub = [ones(Nvar,1);   %Control thrusts
-                    inf*ones(Neom,1); %HCW accelerations
-                    inf*ones(Nslack,1);    %Target distance
-                    ones(Nbi,1)];     %Collision avoidance
+                lb = [zeros(Nvar,1);        %Control thrusts
+                     -inf*ones(Neom,1);     %EOM accelerations
+                      zeros(Nslack,1);      %Target distance
+                      zeros(Nbi,1)];        %Collision avoidance
+                ub = [ones(Nvar,1);         %Control thrusts
+                      inf*ones(Neom,1);     %EOM accelerations
+                      inf*ones(Nslack,1);   %Target distance
+                      ones(Nbi,1)];         %Collision avoidance
                 
                 % Integer constraints
                 intcon = [1:Nvar,Nvar+Neom+3+1:Ntotal];
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
+                [Aeq,beq] = setEOM(Aeq,beq,sat);
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = minDistance(A,b,sat,scenario,p);
-                [A,b] = maxVelocity(A,b,sat,scenario);
+                [A,b] = minDistance(A,b,sat,p);
+                [A,b] = maxVelocity(A,b,sat);
                 
                 for ii = 1:size(lbnd,1)
-                    [A,b] = addObstacle(A,b,sat,scenario,lbnd(ii,:),ubnd(ii,:),ii);
+                    [A,b] = addObstacle(A,b,sat,lbnd(ii,:),ubnd(ii,:),ii);
                 end
                 
                 iter = length(sat.x);
@@ -189,93 +194,92 @@ classdef newSatellite < handle
                 
                 if isempty(U) == 1
                     sat.u = sat.u(7:end);
-                    sat.a = sat.a(4:end);
+                    sat.eom = sat.eom(4:end);
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
                 else
                     sat.u = U(1:Nvar);
-                    sat.a = U(Nvar+1:Nvar+Neom);
+                    sat.eom = U(Nvar+1:Nvar+Neom);
                     sat.J(iter) = fval;
                     sat.flag(iter) = exitflag;
                 end
-                sat.signalsProp(scenario);
+                sat.signalsProp;
             else
-                sat.driftProp(scenario);                
+                sat.driftProp;                
             end
-            sat.attitudeProp(scenario);
-            sat.t(iter+1) = sat.t(iter)+scenario.dt;
+            sat.attitudeProp;
+            sat.t(iter+1) = sat.t(iter)+sat.scenario.dt;
         end
         
         %% Hold within a certain zone
-        function sat = maintain(sat,scenario,lbnd,ubnd)
+        function sat = maintain(sat,lbnd,ubnd)
             if sat.fuel > 0
-                scenario.Nslack = 0;s
-                Nvar = scenario.Nvar;
-                Neom = scenario.Neom;
-                               
+                sat.scenario.Nslack = 0;
+                sat.scenario.Nobj = 0;
+                Nvar = sat.scenario.Nvar;
+                Neom = sat.scenario.Neom;
+                dt = sat.scenario.dt;
+                
                 % Function coefficients
-                f = [scenario.dt*ones(Nvar,1);  %Control thrusts
-                    zeros(Neom,1)];              %HCW accelerations
+                f = [dt*ones(Nvar,1);           %Control thrusts
+                     zeros(Neom,1)];            %HCW accelerations
                 
                 % Parameter bounds, lower & upper
-                lb = [zeros(Nvar,1)            %Control thrusts
-                    -inf*ones(Neom,1)];         %HCW accelerations
-
-                
+                lb = [zeros(Nvar,1)             %Control thrusts
+                     -inf*ones(Neom,1)];        %HCW accelerations
                 ub = [ones(Nvar,1);             %Control thrusts
-                    inf*ones(Neom,1)];           %HCW accelerations
+                      inf*ones(Neom,1)];        %HCW accelerations
 
                 % Integer constraints
                 intcon = 1:Nvar;
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
+                [Aeq,beq] = setEOM(Aeq,beq,sat);
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = holdProximity(A,b,sat,scenario,lbnd,ubnd);
-                [A,b] = maxVelocity(A,b,sat,scenario);
+                [A,b] = holdProximity(A,b,sat,lbnd,ubnd);
+                [A,b] = maxVelocity(A,b,sat);
 
-                iter = length(sat.x);
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);%
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
                 [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
+                iter = length(sat.x);
                 if isempty(U) == 1
                     sat.u = sat.u(7:end);
-                    sat.a = sat.a(4:end);
+                    sat.eom = sat.eom(4:end);
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
                 else
                     sat.u = U(1:Nvar);
-                    sat.a = U(Nvar+1:end);
+                    sat.eom = U(Nvar+1:end);
                     sat.J(iter) = fval;
                     sat.flag(iter) = exitflag;
                 end
-                
-                sat.signalsProp(scenario);
+                sat.signalsProp;
             else
-                sat.driftProp(scenario);
+                sat.driftProp;
             end
-            sat.t(iter+1) = sat.t(iter)+scenario.dt;
-            sat.attitudeProp(scenario);
+            sat.t(iter+1) = sat.t(iter)+sat.scenario.dt;
+            sat.attitudeProp;
         end
                 
         %% MPC Long-Range Maneuver
-        function sat = phaseManeuver(sat,scenario,Xf,tf,dtM)
-            T0 = scenario.T;
-            dt0 = scenario.dt;
+        function sat = phaseManeuver(sat,Xf,tf,dtM)
+            T0 = sat.scenario.T;
+            dt0 = sat.scenario.dt;
             Nslack = 6;
-            scenario.Nslack = Nslack;
+            sat.scenario.Nslack = Nslack;
             
             tt = 0;
             for nn = 1:(tf/dtM)
-                scenario.T = (tf-tt);
-                scenario.dt = dtM;
+                sat.scenario.T = (tf-tt);
+                sat.scenario.dt = dtM;
                 
-                Nvar = scenario.Nvar;
-                Neom = scenario.Neom;
-                dt = scenario.dt;
+                Nvar = sat.scenario.Nvar;
+                Neom = sat.scenario.Neom;
+                dt = sat.scenario.dt;
                 
                 % Optimization weights
                 w1 = 1e-2;          %Control weight
@@ -299,11 +303,11 @@ classdef newSatellite < handle
                 
                 % Equality contraints
                 Aeq = []; beq = [];
-                [Aeq,beq] = setEOM(Aeq,beq,sat,scenario,eye(3));
+                [Aeq,beq] = setEOM(Aeq,beq,sat,eye(3));
                 
                 % Inequality contraints
                 A = [];   b = [];
-                [A,b] = setPhaseState(A,b,sat,scenario,Xf);
+                [A,b] = setPhaseState(A,b,sat,Xf);
                                 
                 % Integer constraint
                 intcon = [];
@@ -311,10 +315,9 @@ classdef newSatellite < handle
                 % options = optimoptions(@linprog);
                 [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
                 
-                scenario.dt = dt0;
-                
+                sat.scenario.dt = dt0;
                 if isempty(U)
-                    sat.propagate(scenario,(dtM/dt0));
+                    sat.propagate(dtM/dt0);
                 else
                     for ii = 1:(dtM/dt0)
                         iter = length(sat.x);
@@ -322,109 +325,41 @@ classdef newSatellite < handle
                         sat.flag(iter) = exitflag;                
                         sat.u(1:2:6) = sat.Rbi*U(1:2:6);
                         sat.u(2:2:6) = sat.Rbi*U(2:2:6);
-                        sat.a = U(Nvar+1:Nvar+3);
-                        sat = signalsProp(sat,scenario);
-                        sat = attitudeProp(sat,scenario);
-                        sat.t(iter+1) = sat.t(iter)+scenario.dt;
+                        sat.eom = U(Nvar+1:Nvar+3);
+                        sat.signalsProp;
+                        sat.attitudeProp;
+                        sat.t(iter+1) = sat.t(iter)+sat.scenario.dt;
                     end
                 end
             end
-            scenario.T = T0;
+            sat.scenario.T = T0;
         end
-        
-        %% Non-MPC Long-Range Maneuver
-        function sat = phaseManeuver2(sat,scenario,Xf,tf,dtM)
-            T0 = scenario.T;
-            dt0 = scenario.dt;
-            scenario.T = tf;
-            scenario.dt = dtM;
-            scenario.Nslack = 6;
-            
-            Nvar = scenario.Nvar;
-            Neom = scenario.Neom;
-            Nslack = 6;
-            
-            w1 = 1e-1;          %Control weight
-            w2 = 1;             %Postion weight
-            w3 = 1e3;           %Velocity weight
-            
-            % Function coefficients
-            f = [w1*dt*ones(Nvar,1) %Control thrusts
-                 zeros(Neom,1)
-                 w2*ones(Nslack/2,1)
-                 w3*ones(Nslack/2,1)];
-            
-            % Parameter bounds, lower & upper
-            lb = [zeros(Nvar,1);   %Control thrusts
-                 -inf*ones(Neom,1)
-                 zeros(Nslack,1)];
-            
-            ub = [ones(Nvar,1);   %Control thrusts
-                inf*ones(Neom,1)
-                1e5*ones(Nslack,1)];
-            
-            % Equality contraints
-            Aeq = []; beq = [];
-            [Aeq,beq] = setEOM(Aeq,beq,sat,scenario);
-            
-            
-            % Inequality contraints
-            A = [];   b = [];
-            [A,b] = setPhaseState([],[],sat,scenario,Xf);
-            
-            % Integer constraint
-            intcon = [];
-            
-            % options = optimoptions(@linprog);
-            [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
-            scenario.dt = dt0;
-            scenario.T = T0;
-            
-            jj = 1;
-            for ii = 1:6:Nvar
-                for kk = 1:(dt/dt0)
-                    iter = length(sat.x);
-                    sat.J(iter) = fval;
-                    sat.flag(iter) = exitflag;
-                    
-                    sat.u(1:2:6) = sat.Rbi*U(ii:2:ii+5);
-                    sat.u(2:2:6) = sat.Rbi*U(ii+1:2:ii+5);
-                    sat.a = U(Nvar+jj:Nvar+jj+2);
-                    
-                    sat = signalsProp(sat,scenario);
-                    sat = attitudeProp(sat,scenario);
-                    sat.t(iter+1) = sat.t(iter)+scenario.dt;
-                end
-                jj = jj+3;
-            end
-        end
-        
+   
         %% Equality contrainted LRM
-        function sat = phaseManeuver3(sat,scenario,Xf,tf,dtM)
-            T0 = scenario.T;
-            dt0 = scenario.dt;
-            scenario.T = tf;
-            scenario.dt = dtM;
-            scenario.Nslack = 0;
+        function sat = phaseManeuver3(sat,Xf,tf,dtM)
+            T0 = sat.scenario.T;
+            dt0 = sat.scenario.dt;
+            sat.scenario.T = tf;
+            sat.scenario.dt = dtM;
+            sat.scenario.Nslack = 0;
             
-            Nvar = scenario.Nvar;
-            Neom = scenario.Neom;
+            Nvar = sat.scenario.Nvar;
+            Neom = sat.scenario.Neom;
             
             % Function coefficients
-            f = [dtM*ones(Nvar,1) %Control thrusts
+            f = [dtM*ones(Nvar,1)           %Control thrusts
                  zeros(Neom,1)];
             
             % Parameter bounds, lower & upper
-            lb = [zeros(Nvar,1)   %Control thrusts
+            lb = [zeros(Nvar,1)             %Control thrusts
                  -inf*ones(Neom,1)];
-            
-            ub = [ones(Nvar,1);   %Control thrusts
+            ub = [ones(Nvar,1);             %Control thrusts
                   inf*ones(Neom,1)];
             
             % Equality contraints
             Aeq = []; beq = [];
-            [Aeq,beq] = setEOM(Aeq,beq,sat,scenario,eye(3));
-            [Aeq,beq] = setPhaseStateEq(Aeq,beq,sat,scenario,Xf);
+            [Aeq,beq] = setEOM(Aeq,beq,sat,eye(3));
+            [Aeq,beq] = setPhaseStateEq(Aeq,beq,sat,Xf);
             
             % Inequality contraints
             A = [];   b = [];
@@ -434,8 +369,8 @@ classdef newSatellite < handle
             
             % options = optimoptions(@linprog);
             [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
-            scenario.dt = dt0;
-            scenario.T = T0;
+            sat.scenario.dt = dt0;
+            sat.scenario.T = T0;
             
             jj = 1;
             for ii = 1:6:Nvar
@@ -446,37 +381,37 @@ classdef newSatellite < handle
                     
                     sat.u(1:2:6) = sat.Rbi*U(ii:2:ii+5);
                     sat.u(2:2:6) = sat.Rbi*U(ii+1:2:ii+5);
-                    sat.a = U(Nvar+jj:Nvar+jj+2);
+                    sat.eom = U(Nvar+jj:Nvar+jj+2);
                     
-                    sat = signalsProp(sat,scenario);
-                    sat = attitudeProp(sat,scenario);
-                    sat.t(iter+1) = sat.t(iter)+scenario.dt;
+                    sat.signalsProp;
+                    sat.attitudeProp;
+                    sat.t(iter+1) = sat.t(iter)+sat.scenario.dt;
                 end
                 jj = jj+3;
             end
         end
   
         %% Propagate with no control for given time
-        function sat = propagate(sat,scenario,tspan)
-            for ii = 1:scenario.dt:tspan
+        function sat = propagate(sat,tspan)
+            for ii = 1:sat.scenario.dt:tspan
                 iter = length(sat.x);
                 sat.J(iter) = 0;
                 sat.flag(iter) = 0;
-                sat.driftProp(scenario);
-                sat.attitudeProp(scenario);
-                sat.t(iter+1) = sat.t(iter)+scenario.dt;
+                sat.driftProp;
+                sat.attitudeProp;
+                sat.t(iter+1) = sat.t(iter)+sat.scenario.dt;
             end
         end
         
         %% Convert solver signals to propagation
-        function sat = signalsProp(sat,scenario)
-            u = sat.u;
+        function sat = signalsProp(sat)
+            U = sat.u;
             iter = length(sat.x);
             
             % Control signals
-            ub = ([u(1)-u(2)
-                   u(3)-u(4)
-                   u(5)-u(6)]);
+            ub = ([U(1)-U(2)
+                   U(3)-U(4)
+                   U(5)-U(6)]);
             ui = sat.Rib*ub;
             
             sat.ub1(iter) = sat.umax*ub(1);
@@ -487,9 +422,9 @@ classdef newSatellite < handle
             sat.uy(iter) = sat.umax*ui(2);
             sat.uz(iter) = sat.umax*ui(3);
             
-            ax = sat.a(1);
-            ay = sat.a(2);
-            az = sat.a(3);
+            ax = sat.eom(1);
+            ay = sat.eom(2);
+            az = sat.eom(3);
             
 %             [dv,dx] = rk(sat,scenario);
 %             sat.vx(iter+1) = sat.vx(iter)+dv(1);
@@ -503,7 +438,7 @@ classdef newSatellite < handle
             
             
             % New velocity
-            dt = scenario.dt;
+            dt = sat.scenario.dt;
             sat.vx(iter+1) = sat.vx(iter)+(sat.ux(iter)/sat.m+ax)*dt;
             sat.vy(iter+1) = sat.vy(iter)+(sat.uy(iter)/sat.m+ay)*dt;
             sat.vz(iter+1) = sat.vz(iter)+(sat.uz(iter)/sat.m+az)*dt;     
@@ -523,19 +458,20 @@ classdef newSatellite < handle
             sat.ub3(iter+1) = 0;
             
             % Fuel mass loss
-            sat.fuel(iter+1) = sat.fuel(iter)-sum(abs(u(1:6)))*sat.mdot*dt;
+            sat.dv(iter+1) = sat.dv(iter)+sum(abs(U(1:6)))*(sat.umax/sat.m)*dt;
+            sat.fuel(iter+1) = sat.fuel(iter)-sum(abs(U(1:6)))*sat.mdot*dt; 
         end
         
         %% Propagate trajectory with no fuel
-        function sat = driftProp(sat,scenario)
-            dt = scenario.dt;
+        function sat = driftProp(sat)
+            dt = sat.scenario.dt;
             
             % Switch equations of motion model state matrix
             switch sat.EOM
                 case 'HCW'
-                    A = HCW(scenario);
+                    A = HCW(sat.scenario);
                 case 'LERM'
-                    A = LERM(scenario,sat.t(end));
+                    A = LERM(sat.scenario,sat.t(end));
             end
             
             % Calculate new state
@@ -588,16 +524,15 @@ classdef newSatellite < handle
             sat.ub3(iter+1) = 0;
             
             % Fuel
+            sat.dv(iter+1) = sat.dv(iter);
             sat.fuel(iter+1) = sat.fuel(iter);
-            
-            
         end
         
         %% Propagate attitude
-        function sat = attitudeProp(sat,scenario)
+        function sat = attitudeProp(sat)
             % Reaction wheel torques
             iter = length(sat.q1);
-            dt = scenario.dt;
+            dt = sat.scenario.dt;
             
             % Uses PD contorolled reaction wheel torques to point
             % satellite at user-defined point.
@@ -689,7 +624,7 @@ classdef newSatellite < handle
                 p1style = strcat('-',sat.color);
                 p4style = 'ks';
                 plot3(sat.y,sat.z,sat.x,p1style,'linewidth',1.5);
-%                 quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
+                quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
                 plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
                 
                 % Plot satellite body axes

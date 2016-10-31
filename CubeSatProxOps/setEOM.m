@@ -1,7 +1,7 @@
 % Solve for equations of motion
-function [Aeqnew,beqnew] = setEOM(Aeqold,beqold,sat,scenario,R)
-if nargin < 5 || isempty(R),R = sat.Rib;end  
-
+function [Aeqnew,beqnew] = setEOM(Aeqold,beqold,sat,R)
+if nargin < 4 || isempty(R),R = sat.Rib;end  
+scenario = sat.scenario;
 
 dt = scenario.dt;
 Nsim = scenario.Nsim;

@@ -1,4 +1,5 @@
-function [Anew,bnew] = holdProximitytest(Aold,bold,sat,scenario,lbnd,ubnd)
+function [Anew,bnew] = holdProximity(Aold,bold,sat,lbnd,ubnd)
+scenario = sat.scenario;
 R = sat.Rib;
 
 dt = scenario.dt;
