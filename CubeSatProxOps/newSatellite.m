@@ -13,7 +13,7 @@ classdef newSatellite < handle
         
         %% Satellite parameters
         umax = 0.25                 %Thrust,                N
-        ISP = 150                   %Specific impulse,      s
+        Isp = 150                   %Specific impulse,      s
         dryMass = 13                %Dry mass,              kg
         fuel = 0.5                  %Fuel mass,             kg
         vmax = 0.5                  %Max velocity,          m/s
@@ -54,17 +54,24 @@ classdef newSatellite < handle
         pt = [0,0,0]                %Attitude point target  m
         
         %% Solver
+        T = 15
+        Nobj = 0
+        Nslack = 0
         u = []                      %Current u output
         eom = []                    %Current state ouput
         J = []                      %Cost fucntion over time
         flag = []                   %Exit flag
-        
     end
     properties (Dependent)
+        %% Mass
         m                           %Total mass,            kg
         mdot                        %Mass flow rate,        kg/s
+        
+        %% Trajectory
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
+        
+        %% Attitude
         w                           %Angular velocity,      rad/s
         qb                          %Quaternions vector,
         Rib                         %Rotation matrix b2i
@@ -72,7 +79,14 @@ classdef newSatellite < handle
         ubnd                        %Upper bound,           m
         lbnd                        %Lower bound,           m
         I                           %Moments of Inertia     kg/m^2
-        dv_ideal                    %Theoretical total dv   m/s        
+        dv_ideal                    %Theoretical total dv   m/s
+        
+        %% Solver
+        Nsim
+        Nvar
+        Neom
+        Nbi
+        Ntotal
     end
     methods
         % Insert satellite in scenario
@@ -81,13 +95,33 @@ classdef newSatellite < handle
                 obj.scenario = scenario;
             end
         end
+        % Number of simulation time steps
+        function Nsim = get.Nsim(obj)
+            Nsim = length(0:obj.scenario.dt:obj.T)-1;
+        end
+        % Number of control variables
+        function Nvar = get.Nvar(obj)
+            Nvar = 6*obj.Nsim;
+        end
+        % Number of hcw acceleration terms
+        function Neom = get.Neom(obj)
+            Neom = 3*obj.Nsim;
+        end
+        % Number of collision avoidance binary variables
+        function Nbi = get.Nbi(obj)
+            Nbi = obj.Nvar*obj.Nobj;
+        end
+        % Total number of variables
+        function Ntotal = get.Ntotal(obj)
+            Ntotal = obj.Nvar+obj.Neom+obj.Nslack+obj.Nbi;
+        end
         % Total mass (Dependent)
         function m = get.m(obj)
             m = obj.fuel(end)+obj.dryMass;
         end
         % Mass flow rate (Dependent)
         function mdot = get.mdot(obj)
-            mdot = obj.umax/obj.ISP/9.81;
+            mdot = obj.umax/obj.Isp/9.81;
         end
         % Current position vector
         function p = get.p(obj)
@@ -97,7 +131,6 @@ classdef newSatellite < handle
         function v = get.v(obj)
             v = [obj.vx(end),obj.vy(end),obj.vz(end)];
         end
-        % Current thrust vector
         % Current body-frame angular velocity
         function w = get.w(obj)
             w = [obj.wb1(end),obj.wb2(end),obj.wb3(end)]';
@@ -114,6 +147,7 @@ classdef newSatellite < handle
                   q(3) 0   -q(1)
                  -q(2) q(1) 0];
             Rbi = (q4^2-q'*q)*eye(3)+2*(q*q')-2*q4*qx;
+            
         end
         % Current body to inertial rotation matrix
         function Rib = get.Rib(obj)
@@ -135,45 +169,39 @@ classdef newSatellite < handle
         end
         % Ideal total dv
         function dv_ideal = get.dv_ideal(obj)
-            dv_ideal = obj.ISP*9.81*...
+            dv_ideal = obj.Isp*9.81*...
                 log((obj.dryMass+obj.fuel(1))/obj.dryMass);
         end
-
         %% Basic point to point movement with collision avoidance
         function sat = approach(sat,p,lbnd,ubnd)
             if nargin < 4 || isempty(lbnd)
                 lbnd = [];ubnd = [];
             end
             if sat.fuel > 0
-                w1 = 5e-2;                  %Thrust weight
-                w2 = 1;                     %Targeting weight
-                sat.scenario.Nslack = 3;
-                sat.scenario.Nobj = size(lbnd,1);
-                Nvar = sat.scenario.Nvar;
-                Neom = sat.scenario.Neom;
-                Nslack = sat.scenario.Nslack;
-                Nbi = sat.scenario.Nbi;
-                Ntotal = sat.scenario.Ntotal;
-                dt = sat.scenario.dt;
-                
+                w1 = 5e-2;                      %Thrust weight
+                w2 = 1;                         %Targeting weight
+                sat.Nslack = 3;
+                sat.Nobj = size(lbnd,1);
+
                 % Function coefficients
-                f = [w1*dt*ones(Nvar,1);    %Control thrusts
-                     zeros(Neom,1);         %EOM accelerations
-                     w2*ones(Nslack,1);     %Target distance
-                     zeros(Nbi,1)];         %Collision avoidance
+                dt = sat.scenario.dt;
+                f = [w1*dt*ones(sat.Nvar,1);    %Control thrusts
+                     zeros(sat.Neom,1);         %EOM accelerations
+                     w2*ones(sat.Nslack,1);     %Target distance
+                     zeros(sat.Nbi,1)];         %Collision avoidance
                 
                 % Parameter bounds, lower & upper
-                lb = [zeros(Nvar,1);        %Control thrusts
-                     -inf*ones(Neom,1);     %EOM accelerations
-                      zeros(Nslack,1);      %Target distance
-                      zeros(Nbi,1)];        %Collision avoidance
-                ub = [ones(Nvar,1);         %Control thrusts
-                      inf*ones(Neom,1);     %EOM accelerations
-                      inf*ones(Nslack,1);   %Target distance
-                      ones(Nbi,1)];         %Collision avoidance
+                lb = [zeros(sat.Nvar,1);        %Control thrusts
+                     -inf*ones(sat.Neom,1);     %EOM accelerations
+                      zeros(sat.Nslack,1);      %Target distance
+                      zeros(sat.Nbi,1)];        %Collision avoidance
+                ub = [ones(sat.Nvar,1);         %Control thrusts
+                      inf*ones(sat.Neom,1);     %EOM accelerations
+                      inf*ones(sat.Nslack,1);   %Target distance
+                      ones(sat.Nbi,1)];         %Collision avoidance
                 
                 % Integer constraints
-                intcon = [1:Nvar,Nvar+Neom+3+1:Ntotal];
+                intcon = [1:sat.Nvar,sat.Nvar+sat.Neom+3+1:sat.Ntotal];
                 
                 % Equality contraints
                 Aeq = []; beq = [];
@@ -198,8 +226,8 @@ classdef newSatellite < handle
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
                 else
-                    sat.u = U(1:Nvar);
-                    sat.eom = U(Nvar+1:Nvar+Neom);
+                    sat.u = U(1:sat.Nvar);
+                    sat.eom = U(sat.Nvar+1:sat.Nvar+sat.Neom);
                     sat.J(iter) = fval;
                     sat.flag(iter) = exitflag;
                 end
@@ -214,24 +242,22 @@ classdef newSatellite < handle
         %% Hold within a certain zone
         function sat = maintain(sat,lbnd,ubnd)
             if sat.fuel > 0
-                sat.scenario.Nslack = 0;
-                sat.scenario.Nobj = 0;
-                Nvar = sat.scenario.Nvar;
-                Neom = sat.scenario.Neom;
+                sat.Nslack = 0;
+                sat.Nobj = 0;
                 dt = sat.scenario.dt;
                 
                 % Function coefficients
-                f = [dt*ones(Nvar,1);           %Control thrusts
-                     zeros(Neom,1)];            %HCW accelerations
+                f = [dt*ones(sat.Nvar,1);           %Control thrusts
+                     zeros(sat.Neom,1)];            %HCW accelerations
                 
                 % Parameter bounds, lower & upper
-                lb = [zeros(Nvar,1)             %Control thrusts
-                     -inf*ones(Neom,1)];        %HCW accelerations
-                ub = [ones(Nvar,1);             %Control thrusts
-                      inf*ones(Neom,1)];        %HCW accelerations
+                lb = [zeros(sat.Nvar,1)             %Control thrusts
+                     -inf*ones(sat.Neom,1)];        %HCW accelerations
+                ub = [ones(sat.Nvar,1);             %Control thrusts
+                      inf*ones(sat.Neom,1)];        %HCW accelerations
 
                 % Integer constraints
-                intcon = 1:Nvar;
+                intcon = 1:sat.Nvar;
                 
                 % Equality contraints
                 Aeq = []; beq = [];
@@ -242,7 +268,7 @@ classdef newSatellite < handle
                 [A,b] = holdProximity(A,b,sat,lbnd,ubnd);
                 [A,b] = maxVelocity(A,b,sat);
 
-                options = optimoptions(@intlinprog,'Display','None','MaxTime',1);
+                options = optimoptions(@intlinprog,'Display','None','MaxTime',dt);
                 [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
                 
                 iter = length(sat.x);
@@ -252,8 +278,8 @@ classdef newSatellite < handle
                     sat.J(iter) = sat.J(iter-1);
                     sat.flag(iter) = 3;
                 else
-                    sat.u = U(1:Nvar);
-                    sat.eom = U(Nvar+1:end);
+                    sat.u = U(1:sat.Nvar);
+                    sat.eom = U(sat.Nvar+1:end);
                     sat.J(iter) = fval;
                     sat.flag(iter) = exitflag;
                 end
@@ -269,17 +295,13 @@ classdef newSatellite < handle
         function sat = phaseManeuver(sat,Xf,tf,dtM)
             T0 = sat.scenario.T;
             dt0 = sat.scenario.dt;
-            Nslack = 6;
-            sat.scenario.Nslack = Nslack;
+            sat.Nslack = 6;
             
-            tt = 0;
             for nn = 1:(tf/dtM)
-                sat.scenario.T = (tf-tt);
+                sat.T = (tf-nn);
                 sat.scenario.dt = dtM;
-                
-                Nvar = sat.scenario.Nvar;
-                Neom = sat.scenario.Neom;
                 dt = sat.scenario.dt;
+                Nvar = sat.Nvar;
                 
                 % Optimization weights
                 w1 = 1e-2;          %Control weight
@@ -288,17 +310,17 @@ classdef newSatellite < handle
                 
                 % Function coefficients
                 f = [w1*dt*ones(Nvar,1) %Control thrusts
-                    zeros(Neom,1)
-                    w2*ones(Nslack/2,1)
-                    w3*ones(Nslack/2,1)];
+                    zeros(sat.Neom,1)
+                    w2*ones(3,1)
+                    w3*ones(3,1)];
                 
                 % Parameter bounds, lower & upper
-                lb = [zeros(Nvar,1);   %Control thrusts
-                     -inf*ones(Neom,1);
+                lb = [zeros(sNvar,1);   %Control thrusts
+                     -inf*ones(sat.Neom,1);
                       zeros(6,1)];
                 
                 ub = [ones(Nvar,1);   %Control thrusts
-                      inf*ones(Neom,1);
+                      inf*ones(sat.Neom,1);
                       1e5*ones(6,1)];
                 
                 % Equality contraints
@@ -332,19 +354,26 @@ classdef newSatellite < handle
                     end
                 end
             end
-            sat.scenario.T = T0;
+            sat.T = T0;
         end
    
         %% Equality contrainted LRM
-        function sat = phaseManeuver3(sat,Xf,tf,dtM)
-            T0 = sat.scenario.T;
+        function sat = phaseManeuverEq(sat,Xf,tf,dtM)
+            % Save old parameters
+            T0 = sat.T;
             dt0 = sat.scenario.dt;
-            sat.scenario.T = tf;
+            umax0 = sat.umax;
+           
+            % Setup solver
+            sat.T = tf;
             sat.scenario.dt = dtM;
-            sat.scenario.Nslack = 0;
+            sat.umax = sat.umax/sqrt(2);
             
-            Nvar = sat.scenario.Nvar;
-            Neom = sat.scenario.Neom;
+            % No slack, no obstacles
+            sat.Nslack = 0;
+            sat.Nobj = 0;
+            Nvar = sat.Nvar;
+            Neom = sat.Neom;
             
             % Function coefficients
             f = [dtM*ones(Nvar,1)           %Control thrusts
@@ -369,9 +398,8 @@ classdef newSatellite < handle
             
             % options = optimoptions(@linprog);
             [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
-            sat.scenario.dt = dt0;
-            sat.scenario.T = T0;
-            
+                        
+            sat.scenario.dt = dt0; 
             jj = 1;
             for ii = 1:6:Nvar
                 for kk = 1:(dtM/dt0)
@@ -385,11 +413,13 @@ classdef newSatellite < handle
                     
                     sat.signalsProp;
                     sat.attitudeProp;
-                    sat.t(iter+1) = sat.t(iter)+sat.scenario.dt;
+                    sat.t(iter+1) = sat.t(iter)+dt0;
                 end
                 jj = jj+3;
             end
-        end
+            sat.T = T0;
+            sat.umax = umax0;
+        end  
   
         %% Propagate with no control for given time
         function sat = propagate(sat,tspan)
@@ -844,4 +874,22 @@ classdef newSatellite < handle
             fprintf('Done\n')
         end
     end
+end
+
+function R = rot(theta,axis)
+% Rotation matrices
+switch axis
+    case 1
+        R = [1 0           0
+            0 cos(theta) -sin(theta)
+            0 sin(theta)  cos(theta)];
+    case 2
+        R = [cos(theta) 0 sin(theta)
+            0          1 0
+            -sin(theta) 0 cos(theta)];
+    case 3
+        R = [cos(theta) -sin(theta) 0
+            sin(theta)  cos(theta) 0
+            0           0          1];
+end
 end

@@ -1,11 +1,9 @@
 function [Aeqnew,beqnew] = setPhaseStateEq(Aeqold,beqold,sat,xf)
-scenario = sat.scenario;
-dt = scenario.dt;
+dt = sat.scenario.dt;
 R = eye(3);
-
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Ntotal = scenario.Ntotal;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Ntotal = sat.Ntotal;
 alpha = sat.umax*dt/sat.m;
 beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 

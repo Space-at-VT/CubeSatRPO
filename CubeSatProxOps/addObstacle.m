@@ -1,13 +1,12 @@
 function [Anew,bnew] = addObstacle(Aold,bold,sat,lbnd,ubnd,N)
-scenario = sat.scenario;
 R = sat.Rib;
 
-dt = scenario.dt;
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Neom = scenario.Neom;
-Ntotal = scenario.Ntotal;
-NU = 3;
+dt = sat.scenario.dt;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Neom = sat.Neom;
+Ntotal = sat.Ntotal;
+Nslack = sat.Nslack;
 beta = sat.umax*dt^2/sat.m; %velocity multiplier
 M = 1e6;
 
@@ -34,7 +33,7 @@ for ii = 1:7:(7*Nsim) %counting position of rows (+/-x,y,z...binary)
     end
     
     % Binary variables
-    jj = Nvar+Neom+NU+Nvar*(N-1)+6*(nn-1)+1;
+    jj = Nvar+Neom+Nslack+Nvar*(N-1)+6*(nn-1)+1;
     A(ii:ii+5,jj:jj+5) = -M*eye(6);
     A(ii+6,jj:jj+5) = ones(1,6);
     

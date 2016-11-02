@@ -1,12 +1,10 @@
 % Solve for equations of motion
 function [Aeqnew,beqnew] = setEOM(Aeqold,beqold,sat,R)
 if nargin < 4 || isempty(R),R = sat.Rib;end  
-scenario = sat.scenario;
-
-dt = scenario.dt;
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Ntotal = scenario.Ntotal;
+dt = sat.scenario.dt;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Ntotal = sat.Ntotal;
 alpha = sat.umax*dt/sat.m;  %position multiplier
 beta = sat.umax*dt^2/sat.m; %velocity multiplier
 t = sat.t(end);
@@ -20,9 +18,9 @@ for ii = 1:3:(3*Nsim)
     % Define equtions of motion
     switch sat.EOM
         case 'HCW'
-            A = HCW(scenario);
+            A = HCW(sat.scenario);
         case 'LERM'
-            A = LERM(scenario,t);
+            A = LERM(sat.scenario,t);
     end
     C = A(4:6,:);
     

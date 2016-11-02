@@ -1,11 +1,9 @@
 function [Anew,bnew] = maxVelocity(Aold,bold,sat)
-scenario = sat.scenario;
 R = sat.Rib;
-
-dt = scenario.dt;
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Ntotal = scenario.Ntotal;
+dt = sat.scenario.dt;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Ntotal = sat.Ntotal;
 alpha = sat.umax*dt/sat.m;
 
 A = zeros(6*Nsim,Ntotal);

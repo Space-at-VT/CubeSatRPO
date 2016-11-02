@@ -1,14 +1,12 @@
 function [Anew,bnew] = minDistance(Aold,bold,sat,pf)
 % Approach target cost function contraints
-scenario = sat.scenario;
-dt = scenario.dt;
+dt = sat.scenario.dt;
 R = sat.Rib;
-
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Neom = scenario.Neom;
-Nslack = scenario.Nslack;
-Ntotal = scenario.Ntotal;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Neom = sat.Neom;
+Nslack = sat.Nslack;
+Ntotal = sat.Ntotal;
 beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 
 % Target objective absolute value
