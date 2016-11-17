@@ -1,6 +1,7 @@
 clear,clc
 close all
 
+%% Initialization
 % Time and orbit parameters
 scenario = newScenario;
 scenario.T = 15;
@@ -25,16 +26,16 @@ sat.point = 1;
 sat.pt = [0,0,0];
 
 % Low thrust monoprop (hydrazine)
-sat.umax = 0.1;
-sat.Isp = 200;
+% sat.umax = 0.1;
+% sat.Isp = 200;
 
 % High thrust monoprop (green)
 % sat.umax = 0.25;
 % sat.Isp = 250;
 
-% Cold gas
-% sat.umax = 0.01;
-% sat.Isp = 40;
+% Cold gas (isobutane)
+sat.umax = 0.05;
+sat.Isp = 40;
 
 % Deputy initial state
 sat.x = 200;
@@ -42,6 +43,7 @@ sat.y = -100;
 sat.z = 100;
 tspan = sat.scenario.TP;
 
+%% Rendezvous
 % First relative ellipse
 Xf = [40,0,0,0,-2*sat.scenario.n*40,0.01];
 sat.phaseManeuverEq(Xf,tspan,30);
@@ -52,21 +54,23 @@ Xf = [5,0,0,0,-2*sat.scenario.n*5,0];
 sat.phaseManeuverEq(Xf,tspan,10);
 sat.propagate(tspan);
 
+% Plot renzevous
 sat.subplotTrajectory;
+drawnow
 
-% Proximity operations
+%% Proximity operations
 dock = [0.4,0,0];
 thold = 0;
-tmax = 180;
+tmax = 60;
 while true
-    clc,fprintf('Time: %.2f\n',sat.t(end))
+    sat.printEphemeris
     
-    tol = [0.05,0.025,0.025];
+    tol = [0.025,0.025,0.025];
     if separation(sat.p,dock,1) < tol(1) && separation(sat.p,dock,2) < tol(2)...
         && separation(sat.p,dock,3) < tol(3)
         sat.scenario.dt = 0.25;
         sat.maintain(dock-tol,dock+tol);
-        sat.T = 10;
+        sat.T = 20;
         thold = thold+sat.scenario.dt;
     else
         sat.scenario.dt = 1;
@@ -77,12 +81,13 @@ while true
     
     if thold > tmax,break,end
 end
-
-close all
-%sat.plotControls;
-sat.subplotTrajectory;
 RSO.propagate(sat.t(end));
 
+close all
+sat.plotControls;
+sat.subplotTrajectory;
+
+%% Post process
 % Create movie
 rec = 0;
 if rec

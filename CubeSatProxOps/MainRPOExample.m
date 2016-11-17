@@ -5,7 +5,6 @@ close all
 scenario = newScenario;
 scenario.T = 15;
 scenario.a = 7000e3;
-tmax = scenario.TP;
 
 % Chief bounds
 chief = newSatellite(scenario);
@@ -26,8 +25,8 @@ deputy.kd = 0.1;
 deputy.point = 1;
 
 % Deputy initial state
-deputy.x = 40;
-deputy.y = 40;
+deputy.x = 20;
+deputy.y = 5;
 deputy.z = 0;
 
 % Proximity holding zone
@@ -35,31 +34,27 @@ lbnd = [chief.ubnd(1)+2,chief.lbnd(2),chief.lbnd(3)];
 ubnd = [chief.ubnd(1)+10,chief.ubnd(2),chief.ubnd(3)];
 center = (ubnd+lbnd)/2;
 
-while deputy.t(end) < tmax
-    clc
-    fprintf('Time: %5.1f\n',deputy.t(end))
-    
-    % Mode checks
-    if separation(deputy.p,center) < 0.25
-        deputy.mode = 'maintain';
-        scenario.T = 40;
-    end
-    if deputy.p(1) > ubnd(1) || deputy.p(2) > ubnd(2) || deputy.p(3) > ubnd(3) ||...
-            deputy.p(1) < lbnd(1) || deputy.p(2) < lbnd(2) || deputy.p(3) < lbnd(3)
-        deputy.mode = 'approach';
-        scenario.T = 15;
-    end
-    
-    % Deputy propagation (MPC)
-    if strcmp(deputy.mode,'approach')
-        deputy.approach(center,chief.lbnd,chief.ubnd);
-    elseif strcmp(deputy.mode,'maintain')
-        deputy.maintain(lbnd,ubnd);
-    end
-    
-    clf
-    deputy.plotTrajectory(chief.lbnd,chief.ubnd,3);
+%% Proximity operations
+thold = 0;
+tmax = scenario.TP;
+while true
+    deputy.printEphemeris
 
+    if deputy.x(end) < ubnd(1) && deputy.y(end) < ubnd(2) && deputy.z(end) < ubnd(3)...
+            && deputy.x(end) > lbnd(1) && deputy.y(end) > lbnd(2) && deputy.z(end) > lbnd(3)
+        deputy.scenario.dt = 0.5;
+        deputy.maintain(lbnd,ubnd);
+        deputy.T = 20;
+        thold = thold+deputy.scenario.dt;
+    else
+        deputy.scenario.dt = 1;
+        deputy.T = 15;
+        deputy.approach(center,chief.lbnd,chief.ubnd);
+        thold = 0;
+    end
+    
+    if thold > tmax,break,end
 end
 
 deputy.plotControls
+deputy.subplotTrajectory;

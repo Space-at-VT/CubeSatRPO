@@ -1,14 +1,13 @@
 clear,clc
 close all
 
-STK = 1;
+STK = 0;
 
 scenario = newScenario;
-scenario.tmax = 60;
 scenario.T = 15;
 scenario.dt = 1;
 
-sat = newSatellite;
+sat = newSatellite(scenario);
 sat.EOM = 'LERM';
 
 sat.bnd = [0.1,0.3,0.2];
@@ -48,9 +47,9 @@ shuttleLbnd = [-5,-16,-1
 iter = 1;
 loiter = 30;
 delay = 0;
-while scenario.t <= scenario.tmax
+while sat.t <= 120
     clc
-    fprintf('Time: %5.1f\n',scenario.t)
+    fprintf('Time: %5.1f\n',sat.t(end))
 
     if separation(sat.p,p(iter,:)) < 0.25
         delay = delay+1;
@@ -61,15 +60,14 @@ while scenario.t <= scenario.tmax
         end
     end
     
-    chief.approach(scenario,chief.p);
-    sat.approach(scenario,p(iter,:),shuttleLbnd,shuttleUbnd);
+    sat.approach(p(iter,:),shuttleLbnd,shuttleUbnd);
     
     clf
     plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
     sat.plotTrajectory(shuttleLbnd,shuttleUbnd,5);
 
-    scenario.t = scenario.t+scenario.dt;
 end
+chief.propagate(length(sat.t));
 sat.plotControls
 save('ShuttleInspection')
 

@@ -180,26 +180,26 @@ classdef newSatellite < handle
             end
             if sat.fuel > 0
                 w1 = 5e-2;                      %Thrust weight
-                w2 = 1;                         %Targeting weight
+                w2 = 1;                       %Targeting weight
                 sat.Nslack = 3;
                 sat.Nobj = size(lbnd,1);
                 
                 % Function coefficients
                 dt = sat.scenario.dt;
                 f = [w1*dt*ones(sat.Nvar,1);    %Control thrusts
-                    zeros(sat.Neom,1);         %EOM accelerations
-                    w2*ones(sat.Nslack,1);     %Target distance
-                    zeros(sat.Nbi,1)];         %Collision avoidance
+                    zeros(sat.Neom,1);          %EOM accelerations
+                    w2*ones(sat.Nslack,1);      %Target distance
+                    zeros(sat.Nbi,1)];          %Collision avoidance
                 
                 % Parameter bounds, lower & upper
                 lb = [zeros(sat.Nvar,1);        %Control thrusts
-                    -inf*ones(sat.Neom,1);     %EOM accelerations
-                    zeros(sat.Nslack,1);      %Target distance
-                    zeros(sat.Nbi,1)];        %Collision avoidance
+                    -inf*ones(sat.Neom,1);      %EOM accelerations
+                    zeros(sat.Nslack,1);        %Target distance
+                    zeros(sat.Nbi,1)];          %Collision avoidance
                 ub = [ones(sat.Nvar,1);         %Control thrusts
-                    inf*ones(sat.Neom,1);     %EOM accelerations
-                    inf*ones(sat.Nslack,1);   %Target distance
-                    ones(sat.Nbi,1)];         %Collision avoidance
+                    inf*ones(sat.Neom,1);       %EOM accelerations
+                    inf*ones(sat.Nslack,1);     %Target distance
+                    ones(sat.Nbi,1)];           %Collision avoidance
                 
                 % Integer constraints
                 intcon = [1:sat.Nvar,sat.Nvar+sat.Neom+3+1:sat.Ntotal];
@@ -676,7 +676,7 @@ classdef newSatellite < handle
         %% Plot all relative trajectory in seperate frames
         function subplotTrajectory(sat)
             % 3D view
-            figure('Position',[50 50 1280 720])
+            figure('Position',[100 100 1280 720])
             axes('Position',[0.05 0.1 0.5 0.8]);
             axis('equal')
             camva(9)
@@ -900,6 +900,15 @@ classdef newSatellite < handle
             grid on
             xlabel('Time [s]')
             ylabel('Fuel, kg')
+        end
+        
+        %% Display position on command window
+        function printEphemeris(sat)
+            clc
+            fprintf('Time: %.2f\n',sat.t(end))
+            fprintf('x: %6.3f m\n',sat.x(end))
+            fprintf('y: %6.3f m\n',sat.y(end))
+            fprintf('z: %6.3f m\n',sat.z(end))           
         end
         
         %% Record a video of figure
