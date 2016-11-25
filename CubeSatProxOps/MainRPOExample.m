@@ -30,6 +30,11 @@ deputy.x = 40;
 deputy.y = 40;
 deputy.z = 0;
 
+deputy.xEst = 40;
+deputy.yEst = 40;
+deputy.zEst = 0;
+
+
 % Proximity holding zone
 lbnd = [chief.ubnd(1)+2,chief.lbnd(2),chief.lbnd(3)];
 ubnd = [chief.ubnd(1)+10,chief.ubnd(2),chief.ubnd(3)];

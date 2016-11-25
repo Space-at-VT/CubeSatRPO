@@ -32,12 +32,21 @@ classdef newSatellite < handle
         vx = 0                      %x velocity over time,  m/s
         vy = 0                      %y velocity over time,  m/s
         vz = 0                      %z velocity over time,  m/s
+        xEst = 0                    %x est. position over time,  m
+        yEst = 0                    %y est. position over time,  m
+        zEst = 0                    %z est. position over time,  m
+        vxEst = 0                   %x est. velocity over time,  m/s
+        vyEst = 0                   %y est. velocity over time,  m/s
+        vzEst = 0                   %z est. velocity over time,  m/s
+        
         ux = []                     %x thrust over time,    N
         uy = []                     %y thrust over time,    N
         uz = []                     %z thrust over time,    N
+
         ub1 = []                    %b1 thrust over time,   N
         ub2 = []                    %b2 thrust over time,   N
         ub3 = []                    %b3 thrust over time,   N
+        
         T1 = []                     %x reaction torque,     N*m
         T2 = []                     %y reaction torque,     N*m
         T3 = []                     %z reaction torque,     N*m
@@ -46,10 +55,28 @@ classdef newSatellite < handle
         wb1 = 0                     %Angular velocity       rad/s
         wb2 = 0                     %over time              rad/s
         wb3 = 0                     %                       rad/s
-        q1 = 0                      %Quaternions
+        
+        wb1est = 0;                 %Angular velocity       rad/s
+        wb2est = 0;                 %without error          rad/s
+        wb3est = 0;                 %                       rad/s
+        
+        q1 = 0                      %Quaternions truth
         q2 = 0                      %over time
         q3 = 0                      %
         q4 = 1;                     %Quaternion scalar
+        q1est = 0;
+        q2est = 0;
+        q3est = 0;
+        q4est = 1;
+        q1meas = 0;
+        q2meas = 0;
+        q3meas = 0;
+        q4meas = 1;
+        
+        P = eye(13);                %Attitude covariance
+        
+        gb = ones(3,1)+0.05*randn(3,1); %Gyro bias
+        
         point = 0                   %Attitude pointing      binary
         pt = [0,0,0]                %Attitude point target  m
         
@@ -65,8 +92,13 @@ classdef newSatellite < handle
         mdot                        %Mass flow rate,        kg/s
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
+        pEst                        %Est. Position vector,  m
+        vEst                        %Est. Velocity vector,  m/s
         w                           %Angular velocity,      rad/s
+        wEst                        %Est. Angular Velocity, rad/s
         qb                          %Quaternions vector,
+        qbMeas                      %Quaternions measurement vector,
+        qbEst                       %Quaternions estimate vector,
         Rib                         %Rotation matrix b2i
         Rbi                         %Rotation matrix i2b
         ubnd                        %Upper bound,           m
@@ -97,14 +129,34 @@ classdef newSatellite < handle
         function v = get.v(obj)
             v = [obj.vx(end),obj.vy(end),obj.vz(end)];
         end
+        % Current position vector
+        function pEst = get.pEst(obj)
+            pEst = [obj.xEst(end),obj.yEst(end),obj.zEst(end)]';
+        end
+        % Current velocity vector
+        function vEst = get.vEst(obj)
+            vEst = [obj.vxEst(end),obj.vyEst(end),obj.vzEst(end)]';
+        end
         % Current thrust vector
         % Current body-frame angular velocity
         function w = get.w(obj)
             w = [obj.wb1(end),obj.wb2(end),obj.wb3(end)]';
         end
+        % Current estimated body-frame angular velocity
+        function wEst = get.wEst(obj)
+            wEst = [obj.wb1est(end),obj.wb2est(end),obj.wb3est(end)]';
+        end
         % Current quaternions
         function qb = get.qb(obj)
             qb = [obj.q1(end),obj.q2(end),obj.q3(end),obj.q4(end)]';
+        end
+        % Current measured quaternions
+        function qbMeas = get.qbMeas(obj)
+            qbMeas = [obj.q1meas(end),obj.q2meas(end),obj.q3meas(end),obj.q4meas(end)]';
+        end
+        % Current measured quaternions
+        function qbEst = get.qbEst(obj)
+            qbEst = [obj.q1est(end),obj.q2est(end),obj.q3est(end),obj.q4est(end)]';
         end
         % Current intertial to body rotation matrix
         function Rbi = get.Rbi(obj)
@@ -588,6 +640,10 @@ classdef newSatellite < handle
             sat.wb2(iter+1) = sat.wb2(iter)+((I(3)-I(1))/I(2)*w(1)*w(3)+M(2)/I(2))*dt;
             sat.wb3(iter+1) = sat.wb3(iter)+((I(1)-I(2))/I(3)*w(1)*w(2)+M(3)/I(3))*dt;
             
+            sat.wb1est(iter+1) = sat.wb1est(iter)+((I(2)-I(3))/I(1)*w(2)*w(3))*dt;
+            sat.wb2est(iter+1) = sat.wb2est(iter)+((I(3)-I(1))/I(2)*w(1)*w(3))*dt;
+            sat.wb3est(iter+1) = sat.wb3est(iter)+((I(1)-I(2))/I(3)*w(1)*w(2))*dt;
+            
             % Solve for quaternion rate of change
             q = sat.qb(1:3);
             q4 = sat.qb(4);
@@ -606,8 +662,173 @@ classdef newSatellite < handle
             sat.q2(iter+1) = qb(2);
             sat.q3(iter+1) = qb(3);
             sat.q4(iter+1) = qb(4);
+            
+            sat.attitudeEst;
         end
-        
+        %% Estimate Attitude
+        function sat = attitudeEst(sat)
+            
+            % Find iteration variable, time differential
+            iter = length(sat.q1);
+            dt = sat.scenario.dt;
+            
+            % Star Tracker:
+            %   http://bluecanyontech.com/wp-content/uploads/2015/12/NST-Data-Sheet_4.1.pdf
+            %   Update: 5 Hz 
+            %   Bore-sight accuracy: 6 arcsec (1-sigma)
+            %   Roll axis accuracy: 40 arcsec (1-sigma) 
+            %   FOV: 10x12 degree (vert x horz)
+
+            %Error in measurements
+            rollErr = normrnd(0, 400/3600);
+            boreErrOne = normrnd(0, 60/3600);
+            boreErrTwo = normrnd(0, 60/3600);
+
+            %Combine error values into DCM
+            errDCM = R1(rollErr)*R2(boreErrOne)*R3(boreErrTwo);
+
+            %get quaternion reprentation of error
+            qErr = DCM2q(errDCM);
+            
+            
+            %Combine attitude error:
+            qErrMat = [qErr(4) qErr(3) -qErr(2) qErr(1);
+                       -qErr(3) qErr(4) qErr(1) qErr(2);
+                       qErr(2) -qErr(1) qErr(4) qErr(3);
+                       -qErr(1) -qErr(2) -qErr(3) qErr(4)];
+                   
+            %Final measured quaternion
+            qMeas = qErrMat*sat.qb;
+            
+            %Gyro measurements: angular velocity
+            gMeas = sat.w.*sat.gb+normrnd(0, 0.01, 3,1);
+            
+            %Relative position measurement:
+            pMeas = sat.p'+normrnd(0, 0.2551, 3,1);
+            
+            %Combine into measurement vector
+            yMeas = [qMeas; gMeas; pMeas];
+
+            
+            %Store values in appropriate property
+            sat.q1meas(iter) = qMeas(1);
+            sat.q2meas(iter) = qMeas(2);
+            sat.q3meas(iter) = qMeas(3);
+            sat.q4meas(iter) = qMeas(4);
+            
+            %Error tuning
+            W = 0.001;
+            R = 0.001;
+                       
+            %Get relation between q and omega for state transition matrix
+            q = sat.qbEst(1:3);
+            q4 = sat.qbEst(4);
+            dqdt = 1/2*[skew(q)+q4*eye(3);-q'];
+            
+            %Measurement translation matrix
+            H = [eye(10) zeros(10,3)];
+            
+            %Create initial state vector
+            Xt0 = [sat.qbEst;   %4
+                   sat.wEst;   %3
+                   sat.pEst;    %3
+                   sat.vEst];%3
+               
+            %State transition matrix
+            Phi = [eye(4), dqdt, zeros(4, 6);
+                   zeros(3,4), eye(3), zeros(3,6);
+                   zeros(3,7), eye(3), eye(3)*dt;
+                   zeros(3,10), eye(3)];
+               
+               %IMPLEMENT CONTROL IN FILTER
+%             U = sat.u;
+%             
+%             % Control signals
+%             ub = ([U(1)-U(2)
+%                    U(3)-U(4)
+%                    U(5)-U(6)]);
+%             ui = sat.Rib*ub;
+%             
+%             u = [ub;
+%                 ui
+%                 
+%             
+%             sat.ub1(iter) = sat.umax*ub(1);
+%             sat.ub2(iter) = sat.umax*ub(2);
+%             sat.ub3(iter) = sat.umax*ub(3);
+%             
+%             sat.ux(iter) = sat.umax*ui(1);
+%             sat.uy(iter) = sat.umax*ui(2);
+%             sat.uz(iter) = sat.umax*ui(3);
+%             
+%             ax = sat.eom(1);
+%             ay = sat.eom(2);
+%             az = sat.eom(3);
+%            
+%             
+%             % New velocity
+%             dt = sat.scenario.dt;
+%             sat.vx(iter+1) = sat.vx(iter)+(sat.ux(iter)/sat.m+ax)*dt;
+%             sat.vy(iter+1) = sat.vy(iter)+(sat.uy(iter)/sat.m+ay)*dt;
+%             sat.vz(iter+1) = sat.vz(iter)+(sat.uz(iter)/sat.m+az)*dt;     
+%             
+%             % New position
+%             sat.x(iter+1) = sat.x(iter)+sat.vx(iter)*dt;
+%             sat.y(iter+1) = sat.y(iter)+sat.vy(iter)*dt;
+%             sat.z(iter+1) = sat.z(iter)+sat.vz(iter)*dt;
+
+                   
+%             B = 
+            
+%             u = [sat.T;
+%                  sat.
+                   
+%             Ad = expm(0.5*Omega*dt);
+%             Bd = dt*1/2*[skew(q4)+q4*eye(3);-q'];
+%             C =  [eye(4) zeros(4,3)];
+            
+            % State estimate update based on dynamic model
+            Xt1min = Phi*Xt0; %ADD CONTROL
+
+            % State estimate covariance update based on dynamic model
+            Ppred = Phi*sat.P*Phi' + eye(13)*W;
+            
+            %Innovation or measurement residual
+            y = yMeas - H*Xt1min;
+            
+            % Optimal observer gain
+            G = Ppred*H'*inv(H*Ppred*H' + eye(10)*R);
+
+            % State estimate update based on measurement
+            Xt1plus = Xt1min + G*y;
+            
+            % State estimate covariance update based on measurement
+            sat.P = (eye(13)-G*H)*sat.P;
+            
+            % Break new state vector into components
+            qEst = Xt1plus(1:4,1)./norm(Xt1plus(1:4,1));
+            wEst = Xt1plus(5:7,1);
+            pEst = Xt1plus(8:10,1);
+            vEst = Xt1plus(11:13,1);
+            
+            %Assign values to satellite parameters
+            sat.q1est(iter) = qEst(1);
+            sat.q2est(iter) = qEst(2);
+            sat.q3est(iter) = qEst(3);
+            sat.q4est(iter) = qEst(4);
+          
+            sat.wb1est(iter) = wEst(1);
+            sat.wb2est(iter) = wEst(2);
+            sat.wb3est(iter) = wEst(3);
+            
+            sat.xEst(iter) = pEst(1);
+            sat.yEst(iter) = pEst(2);
+            sat.zEst(iter) = pEst(3);
+            
+            sat.vxEst(iter) = vEst(1);
+            sat.vyEst(iter) = vEst(2);
+            sat.vzEst(iter) = vEst(3);
+        end
         %% Plot relative trajectory
         function plotTrajectory(sat,lbnd,ubnd,unit)
             if nargin < 2 || isempty(unit),unit = 5;end
