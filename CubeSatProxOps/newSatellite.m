@@ -1129,9 +1129,9 @@ classdef newSatellite < handle
         function printEphemeris(sat)
             clc
             fprintf('Time: %.2f\n',sat.t(end))
-            fprintf('x: %6.3f m\n',sat.x(end))
-            fprintf('y: %6.3f m\n',sat.y(end))
-            fprintf('z: %6.3f m\n',sat.z(end))           
+            fprintf('x: %6.3f m, xEst: %6.3f m\n',sat.x(end), sat.xEst(end))
+            fprintf('y: %6.3f m, yEst: %6.3f m\n',sat.y(end), sat.yEst(end))
+            fprintf('z: %6.3f m, zEst: %6.3f m\n',sat.z(end), sat.zEst(end))           
         end
         
         %% Record a video of figure

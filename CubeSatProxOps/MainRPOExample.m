@@ -29,8 +29,8 @@ deputy.x = 20;
 deputy.y = 5;
 deputy.z = 0;
 
-deputy.xEst = 40;
-deputy.yEst = 40;
+deputy.xEst = 20;
+deputy.yEst = 5;
 deputy.zEst = 0;
 
 
