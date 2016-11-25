@@ -1,6 +1,7 @@
 clear,clc
 close all
 
+%% Initialization
 % Time and orbit parameters
 scenario = newScenario;
 scenario.T = 15;
@@ -15,9 +16,8 @@ sat = newSatellite(scenario);
 sat.EOM = 'LERM';
 sat.bnd = [0.1,0.3,0.2];
 sat.d = 0.02*sat.bnd;
-sat.umax = 0.1;
-sat.Tmax = 0.007;
-sat.vmax = 0.05;
+sat.Tmax = 0.003;
+sat.vmax = 0.025;
 sat.dryMass = 11.5;
 sat.fuel = 0.5;
 sat.kp = 0.1;
@@ -25,45 +25,69 @@ sat.kd = 0.1;
 sat.point = 1;
 sat.pt = [0,0,0];
 
+% Low thrust monoprop (hydrazine)
+% sat.umax = 0.1;
+% sat.Isp = 200;
+
+% High thrust monoprop (green)
+% sat.umax = 0.25;
+% sat.Isp = 250;
+
+% Cold gas (isobutane)
+sat.umax = 0.05;
+sat.Isp = 40;
+
 % Deputy initial state
-sat.x = 600;
+sat.x = 200;
 sat.y = -100;
 sat.z = 100;
 tspan = sat.scenario.TP;
 
+%% Rendezvous
 % First relative ellipse
-Xf = [40,0,0,0,-2*sat.scenario.n*40,0.05];
-sat.phaseManeuver3(Xf,tspan,30);
+Xf = [40,0,0,0,-2*sat.scenario.n*40,0.01];
+sat.phaseManeuverEq(Xf,tspan,30);
 sat.propagate(tspan);
 
 % Second relative ellipse
 Xf = [5,0,0,0,-2*sat.scenario.n*5,0];
-sat.phaseManeuver3(Xf,tspan,10);
+sat.phaseManeuverEq(Xf,tspan,10);
 sat.propagate(tspan);
-sat.plotTrajectory(RSO.lbnd,RSO.ubnd,3);
 
-% Proximity operations
-dock = [0.5,0,0];
+% Plot renzevous
+sat.subplotTrajectory;
+drawnow
+
+%% Proximity operations
+dock = [0.4,0,0];
 thold = 0;
-tmax = 30;
+tmax = 60;
 while true
-    clc,fprintf('Time: %5.1f\n',sat.t(end))
+    sat.printEphemeris
     
-    if separation(sat.p,dock) < 0.1
-        sat.maintain(dock-0.1,dock+0.1);
+    tol = [0.025,0.025,0.025];
+    if separation(sat.p,dock,1) < tol(1) && separation(sat.p,dock,2) < tol(2)...
+        && separation(sat.p,dock,3) < tol(3)
+        sat.scenario.dt = 0.25;
+        sat.maintain(dock-tol,dock+tol);
+        sat.T = 20;
         thold = thold+sat.scenario.dt;
     else
+        sat.scenario.dt = 1;
+        sat.T = 15;
         sat.approach(dock,RSO.lbnd,RSO.ubnd);
         thold = 0;
     end
     
     if thold > tmax,break,end
-    
-    clf,sat.plotTrajectory(RSO.lbnd,RSO.ubnd,3);
 end
-sat.plotControls;
 RSO.propagate(sat.t(end));
 
+close all
+sat.plotControls;
+sat.subplotTrajectory;
+
+%% Post process
 % Create movie
 rec = 0;
 if rec

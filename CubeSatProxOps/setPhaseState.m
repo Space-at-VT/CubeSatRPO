@@ -1,13 +1,13 @@
-function [Anew,bnew] = setPhaseState(Aold,bold,sat,scenario,xf)
+function [Anew,bnew] = setPhaseState(Aold,bold,sat,xf)
 % Approach target cost function contraints
-dt = scenario.dt;
+dt = sat.scenario.dt;
 R = sat.Rib;
 
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Neom = scenario.Neom;
-Nslack = scenario.Nslack;
-Ntotal = scenario.Ntotal;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Neom = sat.Neom;
+Nslack = sat.Nslack;
+Ntotal = sat.Ntotal;
 alpha = sat.umax*dt/sat.m;
 beta = sat.umax*dt^2/sat.m; %Velocity multiplier
 

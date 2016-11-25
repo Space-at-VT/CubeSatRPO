@@ -1,11 +1,9 @@
 function [Anew,bnew] = holdProximity(Aold,bold,sat,lbnd,ubnd)
-scenario = sat.scenario;
 R = sat.Rib;
-
-dt = scenario.dt;
-Nsim = scenario.Nsim;
-Nvar = scenario.Nvar;
-Ntotal = scenario.Ntotal;
+dt = sat.scenario.dt;
+Nsim = sat.Nsim;
+Nvar = sat.Nvar;
+Ntotal = sat.Ntotal;
 beta = sat.umax*dt^2/sat.m; %velocity multiplier
 
 % Add inequality contraints
