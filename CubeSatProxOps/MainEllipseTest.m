@@ -5,7 +5,7 @@ close all
 scenario = newScenario;
 scenario.T = 15;
 scenario.a = 7000e3;
-scenario.dt = 10;
+scenario.dt = 1;
 
 % RSO bounds
 RSO = newSatellite(scenario);
@@ -19,15 +19,15 @@ sat.umax = 0;
 sat.Tmax = 0.007;
 sat.dryMass = 11.5;
 sat.fuel = 0.5;
-sat.kp = 0;
-sat.kd = 0;
-sat.point = 0;
+sat.kp = 0.1;
+sat.kd = 0.1;
+sat.point = 1;
 sat.pt = [0,0,0];
 
 % Deputy initial state
 sat.x = 20;
 sat.y = 0;
-sat.z = 0;
+sat.z = -10;
 sat.vy = -2*scenario.n*sat.x;
 tspan = sat.scenario.TP;
 
@@ -37,6 +37,24 @@ tspan = sat.scenario.TP;
 %     clf
 %     sat.plotTrajectory([],[],5)
 % end
-sat.propagate(tspan);
+
 RSO.propagate(sat.t(end));
-sat.subplotTrajectory;
+
+hold on
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+sat.propagate(tspan/8);
+sat.plotTrajectory(RSO.lbnd,RSO.ubnd,5);
+camva(8)

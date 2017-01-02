@@ -6,10 +6,10 @@ zlbnd = [lbnd(3) lbnd(3) lbnd(3) lbnd(3) lbnd(3)];
 zubnd = [ubnd(3) ubnd(3) ubnd(3) ubnd(3) ubnd(3)];
 
 hold on
-p = plot3(ybnd,zlbnd,xbnd,style,'linewidth',1);
-plot3(ybnd,zubnd,xbnd,style,'linewidth',1)
-for i = 1:4
-    plot3([ybnd(i) ybnd(i)],[lbnd(3),ubnd(3)],[xbnd(i) xbnd(i)],style,'linewidth',1)
+p = plot3(xbnd,ybnd,zlbnd,style,'linewidth',1);
+plot3(xbnd,ybnd,zubnd,style,'linewidth',1)
+for ii = 1:4
+    plot3([xbnd(ii) xbnd(ii)],[ybnd(ii),ybnd(ii)],[lbnd(3) ubnd(3)],style,'linewidth',1)
 end
 hold off
 end

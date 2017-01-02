@@ -11,9 +11,8 @@ beta = sat.umax*dt^2/sat.m; %velocity multiplier
 M = 1e6;
 
 % Safety buffer
-d = 0.1;
-lbnd = lbnd-d;
-ubnd = ubnd+d;
+lbnd = lbnd-sat.safety;
+ubnd = ubnd+sat.safety;
 
 % Add inequality contraints
 A = zeros(Nsim*7,Ntotal);

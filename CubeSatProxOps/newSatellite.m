@@ -1,4 +1,3 @@
-
 %% New Satellite
 classdef newSatellite < handle
     %% Default properties of a basic 6u cubesat
@@ -24,6 +23,7 @@ classdef newSatellite < handle
         kd = 0.1                    %Velocity damping
         d = [0,0,0]                 %Thruster misalignment  m
         dv = 0                      %DeltaV                 m/s
+        safety = 0.5                %Obs, safety distnace   m
         
         %% Trajectory
         t = 0                       %Time,                  s
@@ -67,7 +67,8 @@ classdef newSatellite < handle
         %% Mass
         m                           %Total mass,            kg
         mdot                        %Mass flow rate,        kg/s
-        
+        fuelUsed
+
         %% Trajectory
         p                           %Position vector,       m
         v                           %Velocity vector,       m/s
@@ -124,6 +125,10 @@ classdef newSatellite < handle
         function mdot = get.mdot(obj)
             mdot = obj.umax/obj.Isp/9.81;
         end
+        % Fuel used
+        function fuelUsed = get.fuelUsed(obj)
+            fuelUsed = obj.fuel(1)-obj.fuel(end);
+        end
         % Current position vector
         function p = get.p(obj)
             p = [obj.x(end),obj.y(end),obj.z(end)];
@@ -179,8 +184,8 @@ classdef newSatellite < handle
                 lbnd = [];ubnd = [];
             end
             if sat.fuel > 0
-                w1 = 5e-2;                      %Thrust weight
-                w2 = 1;                       %Targeting weight
+                w1 = 1e-1;                      %Thrust weight
+                w2 = 1;                         %Targeting weight
                 sat.Nslack = 3;
                 sat.Nobj = size(lbnd,1);
                 
@@ -248,8 +253,8 @@ classdef newSatellite < handle
                 dt = sat.scenario.dt;
                 
                 % Function coefficients
-                f = [dt*ones(sat.Nvar,1);           %Control thrusts
-                    zeros(sat.Neom,1)];            %HCW accelerations
+                f = [ones(sat.Nvar,1);           %Control thrusts
+                     zeros(sat.Neom,1)];            %HCW accelerations
                 
                 % Parameter bounds, lower & upper
                 lb = [zeros(sat.Nvar,1)             %Control thrusts
@@ -570,9 +575,9 @@ classdef newSatellite < handle
                 qr(4) = 1/2*sqrt(1+trace(R))+1e-3;
                 qr(1:3) = 1/(4*qr(4))*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
                 qA = [qr(4)  qr(3) -qr(2) -qr(1)
-                    -qr(3)  qr(4)  qr(1)  qr(2)
-                    qr(2) -qr(1)  qr(4) -qr(3)
-                    qr(1)  qr(2)  qr(3)  qr(4)];
+                     -qr(3)  qr(4)  qr(1)  qr(2)
+                      qr(2) -qr(1)  qr(4) -qr(3)
+                      qr(1)  qr(2)  qr(3)  qr(4)];
                 qe = qA*sat.qb;
                 
                 sat.T1(iter) = -sat.kp*(qe(1)*qe(4))-sat.kd*sat.wb1(iter);
@@ -614,8 +619,8 @@ classdef newSatellite < handle
             q = sat.qb(1:3);
             q4 = sat.qb(4);
             qx = [0   -q(3) q(2)
-                q(3) 0   -q(1)
-                -q(2) q(1) 0];
+                  q(3) 0   -q(1)
+                 -q(2) q(1) 0   ];
             dqdt = 1/2*[qx+q4*eye(3);-q']*w;
             
             % Normalize quaternions to account for numerical error (Ensures quaternions
@@ -632,51 +637,52 @@ classdef newSatellite < handle
         
         %% Plot relative trajectory
         function plotTrajectory(sat,lbnd,ubnd,unit)
-            if nargin < 2 || isempty(unit),unit = 5;end
+            if nargin < 3 || isempty(unit),unit = 5;end
             figure(1);
             
             % Plot obstacle bounds
             for ii = 1:size(lbnd,1)
-                plotObstacle(lbnd(ii,:),ubnd(ii,:),'-k');
+                bnds = plotObstacle(lbnd(ii,:),ubnd(ii,:),'-k');
             end
-            
+                       
             % Plot satellite trajectory
-            hold on
-            for jj = 1:length(sat)
-                p1style = strcat('-',sat.color);
-                p4style = 'ks';
-                plot3(sat.y,sat.z,sat.x,p1style,'linewidth',1.5);
-                quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
-                plot3(sat.p(2),sat.p(3),sat.p(1),p4style,'linewidth',2,'markersize',10);
+            hold on            
+            for jj = 1:length(sat)                
+                p0 = plot3(sat.x(1),sat.y(1),sat.z(1),'ko','markerfacecolor','g','markersize',6);
+                pf = plot3(sat.x(end),sat.y(end),sat.z(end),'ko','markerfacecolor','r','markersize',4);
+                trj = plot3(sat.x,sat.y,sat.z,':k','linewidth',1);%'color',gray,
+                %quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
                 
                 % Plot satellite body axes
                 R = unit*sat.Rib;
-                plot3([sat.p(2),sat.p(2)+R(2,1)'],[sat.p(3),sat.p(3)+R(3,1)'],...
-                    [sat.p(1),sat.p(1)+R(1,1)'],'b','linewidth',1.5);
-                plot3([sat.p(2),sat.p(2)+R(2,2)'],[sat.p(3),sat.p(3)+R(3,2)'],...
-                    [sat.p(1),sat.p(1)+R(1,2)'],'r','linewidth',1.5);
-                plot3([sat.p(2),sat.p(2)+R(2,3)'],[sat.p(3),sat.p(3)+R(3,3)'],...
-                    [sat.p(1),sat.p(1)+R(1,3)'],'g','linewidth',1.5);
+                plot3([sat.p(1),sat.p(1)+R(1,1)'],[sat.p(2),sat.p(2)+R(2,1)'],...
+                    [sat.p(3),sat.p(3)+R(3,1)'],'b','linewidth',1);
+                plot3([sat.p(1),sat.p(1)+R(1,2)'],[sat.p(2),sat.p(2)+R(2,2)'],...
+                    [sat.p(3),sat.p(3)+R(3,2)'],'r','linewidth',1);
+                plot3([sat.p(1),sat.p(1)+R(1,3)'],[sat.p(2),sat.p(2)+R(2,3)'],...
+                    [sat.p(3),sat.p(3)+R(3,3)'],'g','linewidth',1);
             end
             hold off
             
             % Axis labels
             grid on
-            zlabel('Radial, x [m]')
-            xlabel('In-track, y [m]')
-            ylabel('Cross-track, z [m]')
-            title('Relative Trajectory')
+            xlabel('Radial, x [m]')
+            ylabel('In-track, y [m]')
+            zlabel('Cross-track, z [m]')
             axis('tight','equal','vis3d')
-            camva(8)
-            view(145,15)
-            
+            legend([bnds,p0,trj],{'RSO Bounds',...
+                'Initial Position','Relative Trajectory'})
+            camva(9)
+            view(30,20)        
             drawnow
         end
         
-        %% Plot all relative trajectory in seperate frames
+        %% Plot relative trajectory in multiple frames
         function subplotTrajectory(sat)
+            
+            figure('Position',[100 100 1280 720]);
+         
             % 3D view
-            figure('Position',[100 100 1280 720])
             axes('Position',[0.05 0.1 0.5 0.8]);
             axis('equal')
             camva(9)
@@ -687,7 +693,7 @@ classdef newSatellite < handle
             origin = plot3(0,0,0,'ko','markerfacecolor','r','markersize',6);
             hold off
             grid on
-            title('Relative Trajectory')
+            %title('Relative Trajectory')
             xlabel('Radial, x, m')
             ylabel('In-Track, y, m')
             zlabel('Cross-Track, z, m')
@@ -738,6 +744,15 @@ classdef newSatellite < handle
             ylabel('In-Track, y, m')
             zlabel('Cross-Track, z, m')
             view(90,0)
+            
+            text = annotation('textbox');
+            text.FontSize = 9;
+            text.String = sprintf('Fuel usage: %.2f g\nDelta V: %.2f m/s',...
+                                  (sat.fuel(1)-sat.fuel(end))*1e3,sat.dv(end));
+            text.BackgroundColor = [1,1,1];
+            text.Position = [0.1 0.81 0.15 0.07];
+            text.VerticalAlignment = 'middle';
+            text.HorizontalAlignment = 'center';
             
         end
         
@@ -918,11 +933,11 @@ classdef newSatellite < handle
             
             satIter = newSatellite;
             vid = VideoWriter(fileName);
-            vid.FrameRate = 60;
+            vid.FrameRate = 30;
             vid.Quality = 100;
             open(vid);
             
-            step = 10;
+            step = 1;
             for ii = 1:step:length(sat.x)
                 clf
                 satIter.x = sat.x(1:ii);
@@ -936,6 +951,7 @@ classdef newSatellite < handle
                 satIter.q3 = sat.q3(ii);
                 satIter.q4 = sat.q4(ii);
                 satIter.plotTrajectory(lbnd,ubnd,unit);
+                drawSatellite
                 frame = getframe(fig);
                 writeVideo(vid,frame);
             end

@@ -16,11 +16,11 @@ sat = newSatellite(scenario);
 sat.EOM = 'LERM';
 sat.bnd = [0.1,0.3,0.2];
 sat.d = 0.02*sat.bnd;
-sat.Tmax = 0.003;
+sat.Tmax = 0.0007;
 sat.vmax = 0.025;
-sat.dryMass = 11.5;
+sat.dryMass = 7;
 sat.fuel = 0.5;
-sat.kp = 0.1;
+sat.kp = 0.01;
 sat.kd = 0.1;
 sat.point = 1;
 sat.pt = [0,0,0];
@@ -38,15 +38,21 @@ sat.umax = 0.05;
 sat.Isp = 40;
 
 % Deputy initial state
+% sat.x = 200;
+% sat.y = -100;
+% sat.z = 100;
 sat.x = 200;
-sat.y = -100;
+sat.y = -2000;
 sat.z = 100;
+sat.vx = 0.577;
+sat.vy = 0.577;
+sat.vz = 0.577;
 tspan = sat.scenario.TP;
 
 %% Rendezvous
 % First relative ellipse
 Xf = [40,0,0,0,-2*sat.scenario.n*40,0.01];
-sat.phaseManeuverEq(Xf,tspan,30);
+sat.phaseManeuverEq(Xf,2*tspan,30);
 sat.propagate(tspan);
 
 % Second relative ellipse
@@ -60,34 +66,30 @@ drawnow
 
 %% Proximity operations
 dock = [0.4,0,0];
-thold = 0;
-tmax = 60;
-while true
+tol = [0.025,0.025,0.025];
+
+% Approach
+while separation(sat.p,dock,1) > tol(1) || separation(sat.p,dock,2) > tol(2)...
+        || separation(sat.p,dock,3) > tol(3)
     sat.printEphemeris
-    
-    tol = [0.025,0.025,0.025];
-    if separation(sat.p,dock,1) < tol(1) && separation(sat.p,dock,2) < tol(2)...
-        && separation(sat.p,dock,3) < tol(3)
-        sat.scenario.dt = 0.25;
-        sat.maintain(dock-tol,dock+tol);
-        sat.T = 20;
-        thold = thold+sat.scenario.dt;
-    else
-        sat.scenario.dt = 1;
-        sat.T = 15;
-        sat.approach(dock,RSO.lbnd,RSO.ubnd);
-        thold = 0;
-    end
-    
-    if thold > tmax,break,end
+    sat.approach(dock,RSO.lbnd,RSO.ubnd);
 end
+
+% Hold  
+thold = 0;
+tmax = 600;
+while thold < tmax
+    sat.maintain(dock-tol,dock+tol);
+    thold = thold+sat.scenario.dt;
+end
+
 RSO.propagate(sat.t(end));
 
+%% Post process
 close all
 sat.plotControls;
 sat.subplotTrajectory;
 
-%% Post process
 % Create movie
 rec = 0;
 if rec
@@ -95,13 +97,14 @@ if rec
 end
 
 % Export to STK
+sat.name = 'MEV';
+RSO.name = 'RSO';
+createSTKfile(sat,scenario);
+createSTKfile(RSO,scenario);
+
 STK = 1;
 if STK
     pause(0.1)
-    sat.name = 'MEV';
-    RSO.name = 'RSO';
-    createSTKfile(sat,scenario);
-    createSTKfile(RSO,scenario);
      
     app = actxserver('STK11.application');
     root = app.Personality2;

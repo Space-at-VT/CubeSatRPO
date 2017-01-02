@@ -47,7 +47,7 @@ shuttleLbnd = [-5,-16,-1
 iter = 1;
 loiter = 30;
 delay = 0;
-while sat.t <= 120
+while true
     clc
     fprintf('Time: %5.1f\n',sat.t(end))
 
@@ -55,18 +55,20 @@ while sat.t <= 120
         delay = delay+1;
         if delay == loiter
             iter = iter+1;
-            if iter > size(p,1),iter = 1;end
+            if iter > size(p,1)
+                iter = 1;
+                break
+            end
             delay = 0;
         end
     end
     
     sat.approach(p(iter,:),shuttleLbnd,shuttleUbnd);
-    
+end
     clf
     plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
     sat.plotTrajectory(shuttleLbnd,shuttleUbnd,5);
 
-end
 chief.propagate(length(sat.t));
 sat.plotControls
 save('ShuttleInspection')
