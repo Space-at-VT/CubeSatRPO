@@ -3,7 +3,7 @@ close all
 
 %% Scenario
 scenario = newScenario;
-scenario.T = 20;
+scenario.T = 30;
 scenario.dt = 1;
 
 %% CubeSat
@@ -11,45 +11,39 @@ sat = newSatellite(scenario);
 sat.EOM = 'LERM';
 sat.bnd = [0.1,0.3,0.2];
 sat.x = 0;
-sat.y = -10;
+sat.y = -15;
 sat.z = 0;
 sat.vmax = 0.5;
 sat.umax = 0.25;
-sat.Tmax = 0.003;
+sat.Tmax = 0.002;
 sat.dryMass = 6;
 sat.fuel = 0.5;
-sat.kp = 0.05;
-sat.kd = 0.05;
-sat.point = 0;
+sat.kp = 0.01;
+sat.kd = 0.02;
+sat.point = 1;
 sat.pt = [0,0,0];
-sat.safety = 0.5;
+sat.q3 = 0.7071;
+sat.q4 = 0.7071;
 
 %% RSO
 % Panels
-obj.ubnd = [1,1,2
-            6,1,0.1
-            -1,1,0.1];
-obj.lbnd = [-1,-1,-2
-            1,-1,-0.1
-            -6,-1,-0.1];
-        
-obj2.ubnd = [1,1,2
-            6,0.1,1
-            -1,0.1,1];
-obj2.lbnd = [-1,-1,-2
-             1,-0.1,-1
-            -6,-0.1,-1];
+obj.ubnd = [1.5  1  1
+            0.1  1  6
+            0.1  1 -1];
+obj.lbnd = [-1.5 -1 -1
+            -0.1 -1  1
+            -0.1 -1 -6];
 
 %% Waypoint
-waypoint = [0,10,0];
+waypoint = [0,15,0];
 tol = [0.25,0.25,0.25];
 
 %% Model Predictive Control
 % Approach
 hold on
 skip = 5;
-ii = 6;
-drawSatelliteX(1,4,[5,2],5);
+ii = skip+1;
+drawSatelliteX(1,3,[5,2],5);
 light('Position',[100 0 100],'Style','local');
 while separation(sat.p,waypoint,1) > tol(1) || separation(sat.p,waypoint,2) > tol(2)...
         || separation(sat.p,waypoint,3) > tol(3)
@@ -76,9 +70,8 @@ end
 %     thold = thold+sat.scenario.dt;
 % end
 
-sat.fuelUsed*1e3
-sat.dv(end)
-
+fprintf('Fuel Used: %.3f g\n',sat.fuelUsed*1e3)
+fprintf('Total DeltaV: %.3f m/s\n',sat.dv(end))
 
 %% Post-Process
 %sat.renderVideo('AIAA1.avi',obj.lbnd,obj.ubnd,1);

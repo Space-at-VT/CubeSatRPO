@@ -23,7 +23,6 @@ classdef newSatellite < handle
         kd = 0.1                    %Velocity damping
         d = [0,0,0]                 %Thruster misalignment  m
         dv = 0                      %DeltaV                 m/s
-        safety = 0.5                %Obs, safety distnace   m
         
         %% Trajectory
         t = 0                       %Time,                  s
@@ -60,14 +59,19 @@ classdef newSatellite < handle
         Nslack = 0
         u = []                      %Current u output
         eom = []                    %Current state ouput
-        J = 0                      %Cost fucntion over time
+        J = 0                       %Cost fucntion over time
         flag = []                   %Exit flag
+        
+        %% STK
+        app = [];
+        root = [];
+        
     end
     properties (Dependent)
         %% Mass
         m                           %Total mass,            kg
         mdot                        %Mass flow rate,        kg/s
-        fuelUsed
+        fuelUsed                    %Total fuel used,       kg
 
         %% Trajectory
         p                           %Position vector,       m
@@ -89,6 +93,7 @@ classdef newSatellite < handle
         Neom
         Nbi
         Ntotal
+        dsafe
     end
     methods
         % Insert satellite in scenario
@@ -116,6 +121,10 @@ classdef newSatellite < handle
         % Total number of variables
         function Ntotal = get.Ntotal(obj)
             Ntotal = obj.Nvar+obj.Neom+obj.Nslack+obj.Nbi;
+        end
+        % Total mass (Dependent)
+        function dsafe = get.dsafe(obj)
+            dsafe = max(obj.bnd)/2+sqrt(2)/2*obj.vmax*obj.scenario.dt;
         end
         % Total mass (Dependent)
         function m = get.m(obj)
@@ -383,13 +392,13 @@ classdef newSatellite < handle
             
             % Function coefficients
             f = [dtM*ones(Nvar,1)           %Control thrusts
-                zeros(Neom,1)];
+                 zeros(Neom,1)];
             
             % Parameter bounds, lower & upper
             lb = [zeros(Nvar,1)             %Control thrusts
-                -inf*ones(Neom,1)];
+                 -inf*ones(Neom,1)];
             ub = [ones(Nvar,1);             %Control thrusts
-                inf*ones(Neom,1)];
+                  inf*ones(Neom,1)];
             
             % Equality contraints
             Aeq = []; beq = [];
@@ -402,12 +411,12 @@ classdef newSatellite < handle
             % Integer constraint
             intcon = [];
             
-            % options = optimoptions(@linprog);
+            options = optimoptions(@intlinprog,'MaxTime',10);%'Display','None',
             [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
             
             sat.scenario.dt = dt0;
             jj = 1;
-            for ii = 1:6:Nvar
+            for ii = 1:6:(Nvar)
                 for kk = 1:(dtM/dt0)
                     iter = length(sat.x);
                     sat.J(iter) = fval;
@@ -513,7 +522,7 @@ classdef newSatellite < handle
             sat.flag(iter) = 3;
             
             X = [sat.x(iter),sat.y(iter),sat.z(iter),...
-                sat.vx(iter),sat.vy(iter),sat.vz(iter)]';
+                 sat.vx(iter),sat.vy(iter),sat.vz(iter)]';
             DX = A*X;
 
             % Control signals - all off
@@ -565,12 +574,14 @@ classdef newSatellite < handle
             % satellite at user-defined point.
             % Else the satellite just minimizes divergence from the
             % chief RIC axes.
+            kp = sat.kp/sat.scenario.dt;
+            kd = sat.kd/sat.scenario.dt;
             if sat.point
                 vt = (sat.pt-sat.p)/norm(sat.pt-sat.p);
                 th3 = -atan2(vt(2),vt(1));
                 th2 = -atan2(vt(3),norm([vt(1),vt(2)]));
                 R = rot(th3,3)*rot(th2,2);
-                
+                                
                 qr = zeros(4,1);
                 qr(4) = 1/2*sqrt(1+trace(R))+1e-3;
                 qr(1:3) = 1/(4*qr(4))*[R(2,3)-R(3,2);R(3,1)-R(1,3);R(1,2)-R(2,1)];
@@ -580,16 +591,16 @@ classdef newSatellite < handle
                       qr(1)  qr(2)  qr(3)  qr(4)];
                 qe = qA*sat.qb;
                 
-                sat.T1(iter) = -sat.kp*(qe(1)*qe(4))-sat.kd*sat.wb1(iter);
-                sat.T2(iter) = -sat.kp*(qe(2)*qe(4))-sat.kd*sat.wb2(iter);
-                sat.T3(iter) = -sat.kp*(qe(3)*qe(4))-sat.kd*sat.wb3(iter);
+                sat.T1(iter) = -kp*(qe(1)*qe(4))-kd*sat.wb1(iter);
+                sat.T2(iter) = -kp*(qe(2)*qe(4))-kd*sat.wb2(iter);
+                sat.T3(iter) = -kp*(qe(3)*qe(4))-kd*sat.wb3(iter);
                 sat.T1(iter+1) = 0;
                 sat.T2(iter+1) = 0;
                 sat.T3(iter+1) = 0;
             else
-                sat.T1(iter) = -sat.kp*(sat.q1(iter))-sat.kd*sat.wb1(iter);
-                sat.T2(iter) = -sat.kp*(sat.q2(iter))-sat.kd*sat.wb2(iter);
-                sat.T3(iter) = -sat.kp*(sat.q3(iter))-sat.kd*sat.wb3(iter);
+                sat.T1(iter) = -kp*(sat.q1(iter))-kd*sat.wb1(iter);
+                sat.T2(iter) = -kp*(sat.q2(iter))-kd*sat.wb2(iter);
+                sat.T3(iter) = -kp*(sat.q3(iter))-kd*sat.wb3(iter);
                 sat.T1(iter+1) = 0;
                 sat.T2(iter+1) = 0;
                 sat.T3(iter+1) = 0;
@@ -637,8 +648,10 @@ classdef newSatellite < handle
         
         %% Plot relative trajectory
         function plotTrajectory(sat,lbnd,ubnd,unit)
-            if nargin < 3 || isempty(unit),unit = 5;end
+            if nargin < 4 || isempty(unit),unit = 5;end
             figure(1);
+            
+            def = [0,0.4470,0.7410];
             
             % Plot obstacle bounds
             for ii = 1:size(lbnd,1)
@@ -650,8 +663,8 @@ classdef newSatellite < handle
             for jj = 1:length(sat)                
                 p0 = plot3(sat.x(1),sat.y(1),sat.z(1),'ko','markerfacecolor','g','markersize',6);
                 pf = plot3(sat.x(end),sat.y(end),sat.z(end),'ko','markerfacecolor','r','markersize',4);
-                trj = plot3(sat.x,sat.y,sat.z,':k','linewidth',1);%'color',gray,
-                %quiver3(sat.y,sat.z,sat.x,-sat.uy,-sat.uz,-sat.ux,1,'r','linewidth',1.5);
+                trj = plot3(sat.x,sat.y,sat.z,'-','linewidth',1,'color',def);
+                %quiver3(sat.x,sat.y,sat.z,-sat.ux,-sat.uy,-sat.uz,1,'r','linewidth',1.5);
                 
                 % Plot satellite body axes
                 R = unit*sat.Rib;
@@ -670,9 +683,9 @@ classdef newSatellite < handle
             ylabel('In-track, y [m]')
             zlabel('Cross-track, z [m]')
             axis('tight','equal','vis3d')
-            legend([bnds,p0,trj],{'RSO Bounds',...
-                'Initial Position','Relative Trajectory'})
-            camva(9)
+            legend([bnds,p0,trj],{'Chief Bounds',...
+                'Initial Position','Relative Trajectory'},'location','best')
+            camva(8)
             view(30,20)        
             drawnow
         end
@@ -760,7 +773,11 @@ classdef newSatellite < handle
         function plotControls(sat)
             tf = sat.t(end);
             
-            %
+            c1 = [0,0.4470,0.7410];
+            c2 = [0.8500,0.3250,0.0980];
+            c3 = [0.9290,0.6940,0.1250];
+            
+            % main view
             figure
             subplot(3,3,1)
             hold on
@@ -834,9 +851,9 @@ classdef newSatellite < handle
             figure
             subplot(3,1,1)
             hold on
-            plot(sat.t,sat.T1,'-b','linewidth',2)
-            plot(sat.t,sat.T2,'-r','linewidth',2)
-            plot(sat.t,sat.T3,'-g','linewidth',2)
+            plot(sat.t,sat.T1,'color',c1,'linewidth',1.5)
+            plot(sat.t,sat.T2,'color',c2,'linewidth',1.5)
+            plot(sat.t,sat.T3,'color',c3,'linewidth',1.5)
             hold off
             axis([0 tf 0 1],'auto y')
             grid on
@@ -847,9 +864,9 @@ classdef newSatellite < handle
             
             subplot(3,1,2)
             hold on
-            plot(sat.t,sat.wb1,'-b','linewidth',2)
-            plot(sat.t,sat.wb2,'-r','linewidth',2)
-            plot(sat.t,sat.wb3,'-g','linewidth',2)
+            plot(sat.t,sat.wb1,'color',c1,'linewidth',1.5)
+            plot(sat.t,sat.wb2,'color',c2,'linewidth',1.5)
+            plot(sat.t,sat.wb3,'color',c3,'linewidth',1.5)
             hold off
             axis([0 tf 0 1],'auto y')
             grid on
@@ -860,10 +877,10 @@ classdef newSatellite < handle
             
             subplot(3,1,3)
             hold on
-            plot(sat.t,sat.q1,'-b','linewidth',2)
-            plot(sat.t,sat.q2,'-r','linewidth',2)
-            plot(sat.t,sat.q3,'-g','linewidth',2)
-            plot(sat.t,sat.q4,'-k','linewidth',2)
+            plot(sat.t,sat.q1,'color',c1,'linewidth',1.5)
+            plot(sat.t,sat.q2,'color',c2,'linewidth',1.5)
+            plot(sat.t,sat.q3,'color',c3,'linewidth',1.5)
+            plot(sat.t,sat.q4,'-k','linewidth',1.5)
             hold off
             axis([0 tf 0 1],'auto y')
             grid on
@@ -872,7 +889,7 @@ classdef newSatellite < handle
             legend({'q1','q2','q3','q4'})
             title('Attitude Quaternions vs Time')
             
-            %
+            % Signals and cost function
             figure
             subplot(4,1,1)
             hold on
@@ -937,7 +954,7 @@ classdef newSatellite < handle
             vid.Quality = 100;
             open(vid);
             
-            step = 1;
+            step = 15;
             for ii = 1:step:length(sat.x)
                 clf
                 satIter.x = sat.x(1:ii);
@@ -951,12 +968,35 @@ classdef newSatellite < handle
                 satIter.q3 = sat.q3(ii);
                 satIter.q4 = sat.q4(ii);
                 satIter.plotTrajectory(lbnd,ubnd,unit);
-                drawSatellite
+                drawSatelliteX(1,4,[5,2],5);
                 frame = getframe(fig);
                 writeVideo(vid,frame);
             end
             close(vid);
             fprintf('Done\n')
+        end
+        
+        %% Power analysis
+        function pLoad = runPowerAnalysis(sat) 
+            % Component power
+            pADCSmin = 3.17;
+            pADCSmax = 7.23;
+            pPropmin = 0.25;
+            pPropmax = 10.00;
+            pCPU = 2*0.4;
+            pCam = 0;
+            pComm = 4;
+            pGPS = 0.8;
+            
+            % Iteration
+            for ii = 1:length(sat.t)             
+                % Component power
+                pADCS = pADCSmin + (pADCSmax-pADCSmin)*...
+                        sum(abs([sat.T1(ii),sat.T2(ii),sat.T3(ii)]/sat.Tmax));
+                pProp = pPropmin + (pPropmax-pPropmin)*...
+                    sum(abs([sat.ux(ii),sat.uy(ii),sat.uz(ii)]/sat.umax));
+                pLoad(ii) = pADCS+pProp+pCPU+pCam+pComm+pGPS+pGPS;
+            end
         end
     end
 end
