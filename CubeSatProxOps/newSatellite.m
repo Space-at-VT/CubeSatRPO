@@ -18,7 +18,8 @@ classdef newSatellite < handle
         fuel = 0.5                  %Fuel mass,             kg
         vmax = 0.5                  %Max velocity,          m/s
         bnd = [0.1,0.3,0.2]         %Satellite size,        m
-        Tmax = 0.007                %Max reaction torque    Nm
+        Tmax = 0.0007               %Max reaction torque    Nm
+        Lmax = 0.009351             %Max momentum storage,  Nms
         kp = 0.1                    %Position damping
         kd = 0.1                    %Velocity damping
         d = [0,0,0]                 %Thruster misalignment  m
@@ -50,6 +51,9 @@ classdef newSatellite < handle
         q2 = 0                      %over time
         q3 = 0                      %
         q4 = 1;                     %Quaternion scalar
+        L1 = 0;                     %Stored Momentum,       Nms
+        L2 = 0;
+        L3 = 0;
         point = 0                   %Attitude pointing      binary
         pt = [0,0,0]                %Attitude point target  m
         
@@ -618,13 +622,18 @@ classdef newSatellite < handle
             M(1) = sat.ub3(iter)*sat.d(2)-sat.ub2(iter)*sat.d(3)+sat.T1(iter);
             M(2) = sat.ub1(iter)*sat.d(3)-sat.ub3(iter)*sat.d(1)+sat.T2(iter);
             M(3) = sat.ub2(iter)*sat.d(1)-sat.ub1(iter)*sat.d(2)+sat.T3(iter);
-            
+                        
             % New angular velocity
             I = sat.I;
             w = sat.w;
             sat.wb1(iter+1) = sat.wb1(iter)+((I(2)-I(3))/I(1)*w(2)*w(3)+M(1)/I(1))*dt;
             sat.wb2(iter+1) = sat.wb2(iter)+((I(3)-I(1))/I(2)*w(1)*w(3)+M(2)/I(2))*dt;
             sat.wb3(iter+1) = sat.wb3(iter)+((I(1)-I(2))/I(3)*w(1)*w(2)+M(3)/I(3))*dt;
+            
+            % New stored momentum
+            sat.L1(iter+1) = sat.L1(iter)+I(1)*((I(2)-I(3))/I(1)*w(2)*w(3)+M(1)/I(1))*dt;
+            sat.L2(iter+1) = sat.L2(iter)+I(2)*((I(3)-I(1))/I(2)*w(1)*w(3)+M(2)/I(2))*dt;
+            sat.L3(iter+1) = sat.L3(iter)+I(3)*((I(1)-I(2))/I(3)*w(1)*w(2)+M(3)/I(3))*dt;
             
             % Solve for quaternion rate of change
             q = sat.qb(1:3);
@@ -766,11 +775,11 @@ classdef newSatellite < handle
             text.Position = [0.1 0.81 0.15 0.07];
             text.VerticalAlignment = 'middle';
             text.HorizontalAlignment = 'center';
-            
+            drawnow
         end
-        
-        %% Plot control signals and state over time
-        function plotControls(sat)
+          
+        %% Plot controls, velocity, position
+        function plotState(sat)
             tf = sat.t(end);
             
             c1 = [0,0.4470,0.7410];
@@ -781,7 +790,7 @@ classdef newSatellite < handle
             figure
             subplot(3,3,1)
             hold on
-            stairs(sat.t,sat.ub1/sat.umax,'-b','linewidth',2)
+            stairs(sat.t,sat.ub1/sat.umax,'color',c1,'linewidth',2)
             plot([0 tf],[0 0],'--k','linewidth',2)
             axis([0 tf -1.5 1.5])
             grid on
@@ -790,7 +799,7 @@ classdef newSatellite < handle
             
             subplot(3,3,4)
             hold on
-            stairs(sat.t,sat.ub2/sat.umax,'-r','linewidth',2)
+            stairs(sat.t,sat.ub2/sat.umax,'color',c2,'linewidth',2)
             plot([0 tf],[0 0],'--k','linewidth',2)
             axis([0 tf -1.5 1.5])
             grid on
@@ -798,7 +807,7 @@ classdef newSatellite < handle
             
             subplot(3,3,7)
             hold on
-            stairs(sat.t,sat.ub3/sat.umax,'-g','linewidth',2)
+            stairs(sat.t,sat.ub3/sat.umax,'color',c3,'linewidth',2)
             plot([0 tf],[0 0],'--k','linewidth',2)
             axis([0 tf -1.5 1.5])
             grid on
@@ -807,20 +816,20 @@ classdef newSatellite < handle
             
             % Velocity
             subplot(3,3,2)
-            plot(sat.t,sat.vx,'-b','linewidth',2)
+            plot(sat.t,sat.vx,'color',c1,'linewidth',2)
             axis([0 tf 0 1],'auto y')
             grid on
             ylabel('Vx [m/s]')
             title('Velocity vs Time')
             
             subplot(3,3,5)
-            plot(sat.t,sat.vy,'-r','linewidth',2)
+            plot(sat.t,sat.vy,'color',c2,'linewidth',2)
             axis([0 tf 0 1],'auto y')
             grid on
             ylabel('Vy [m/s]')
             
             subplot(3,3,8)
-            plot(sat.t,sat.vz,'-g','linewidth',2)
+            plot(sat.t,sat.vz,'color',c3,'linewidth',2)
             axis([0 tf 0 1],'auto y')
             grid on
             xlabel('Time [s]')
@@ -828,26 +837,34 @@ classdef newSatellite < handle
             
             % Position
             subplot(3,3,3)
-            plot(sat.t,sat.x,'-b','linewidth',2)
+            plot(sat.t,sat.x,'color',c1,'linewidth',2)
             axis([0 tf 0 1],'auto y')
             grid on
             ylabel('x [m]')
             title('Position vs Time')
             
             subplot(3,3,6)
-            plot(sat.t,sat.y,'-r','linewidth',2)
+            plot(sat.t,sat.y,'color',c2,'linewidth',2)
             axis([0 tf 0 1],'auto y')
             grid on
             ylabel('y [m]')
             
             subplot(3,3,9)
-            plot(sat.t,sat.z,'-g','linewidth',2)
+            plot(sat.t,sat.z,'color',c3,'linewidth',2)
             axis([0 tf 0 1],'auto y')
             grid on
             xlabel('Time [s]')
             ylabel('z [m]')
+            drawnow
+        end
+        
+        %% Plot angular velocity, quaternions, momentum
+        function plotAttitude(sat)
+            tf = sat.t(end);
+            c1 = [0,0.4470,0.7410];
+            c2 = [0.8500,0.3250,0.0980];
+            c3 = [0.9290,0.6940,0.1250];
             
-            %
             figure
             subplot(3,1,1)
             hold on
@@ -889,6 +906,25 @@ classdef newSatellite < handle
             legend({'q1','q2','q3','q4'})
             title('Attitude Quaternions vs Time')
             
+            figure
+            hold on
+            plot(sat.t,sat.L1,'Linewidth',1.5)
+            plot(sat.t,sat.L2,'Linewidth',1.5)
+            plot(sat.t,sat.L3,'Linewidth',1.5)
+            hold off
+            axis([0 tf 0 1],'auto y')
+            grid on
+            xlabel('Time ,s')
+            ylabel('Angular Momentum, Nms')
+            legend({'L1','L2','L3'})
+            title('Stored Angular Momentum')
+            drawnow
+        end
+        
+        %% Plot control signals and state over time
+        function plotControls(sat)
+            tf = sat.t(end);
+            
             % Signals and cost function
             figure
             subplot(4,1,1)
@@ -925,13 +961,19 @@ classdef newSatellite < handle
             grid on
             xlabel('Time [s]')
             ylabel('Cost Function, J')
-            
+            drawnow
+        end
+        
+        %% Plot fuel usage
+        function plotFuel(sat)
+            tf = sat.t(end);
             figure
             plot(sat.t,sat.fuel,'k','linewidth',1)
             axis([0 tf 0 sat.fuel(1)])
             grid on
             xlabel('Time [s]')
             ylabel('Fuel, kg')
+            drawnow
         end
         
         %% Display position on command window

@@ -1,11 +1,11 @@
-function plotTrajectory(sat,lbnd,ubnd,unit)
-if nargin < 2 || isempty(unit),unit = 5;end
+function plotTrajectory(sat,unit)
+% if nargin < 2 || isempty(unit),unit = 5;end
 fig = figure(1);
 
 % Plot obstacle bounds
-for ii = 1:size(lbnd,1)
-    plotObstacle(lbnd(ii,:),ubnd(ii,:),'-k');
-end
+% for ii = 1:size(lbnd,1)
+%     plotObstacle(lbnd(ii,:),ubnd(ii,:),'-k');
+% end
 
 % Plot satellite trajectory
 hold on
@@ -34,14 +34,9 @@ xlabel('In-track, y [m]')
 ylabel('Cross-track, z [m]')
 title('Relative Trajectory')
 axis('tight','equal','vis3d')
-camva(10)
+% camva(10)
 % axis('equal','vis3d')
 view(145,15)
-
-% Save movie
-if sat.makeMovie
-    sat = sat.addFrame(fig);
-end
 
 drawnow
 end
