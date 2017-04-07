@@ -4,14 +4,13 @@ close all
 STK = 0;
 
 scenario = newScenario;
-scenario.T = 15;
+scenario.T = 30;
 scenario.dt = 1;
 
 sat = newSatellite(scenario);
 sat.EOM = 'LERM';
 
 sat.bnd = [0.1,0.3,0.2];
-% sat.d = [0.001,0.003,0.002];
 sat.x = 5;
 sat.y = 0;
 sat.z = 0;
@@ -64,14 +63,15 @@ while true
     end
     
     sat.approach(p(iter,:),shuttleLbnd,shuttleUbnd);
-end
+    
     clf
-    plotShuttle(0,0,0,0,0,0,0.05,1e-3,[1,1,0.5])
-    sat.plotTrajectory(shuttleLbnd,shuttleUbnd,5);
+    plotShuttle(0,0,0,0,pi/2,pi/2,0.05,1e-3,[1,1,0.5])
+    sat.plotTrajectory(shuttleLbnd,shuttleUbnd,3,1);
+end
 
 chief.propagate(length(sat.t));
-sat.plotControls
-save('ShuttleInspection')
+sat.plotAttitude
+% save('ShuttleInspection')
 
 if STK
     createSTKfile(chief,scenario);

@@ -36,7 +36,7 @@ for jj = 1:step:(ii-resto)
     p = patch('faces', F, 'vertices' ,Vnew);
     set(p, 'facec', cv);
     set(p, 'EdgeColor','none');
-    H1 = light('Position',[0 100 0],'Style','local');
+    H1 = light('Position',[100 0 0],'Style','local');
     camva(9)
     hold on
 %     lighting phong

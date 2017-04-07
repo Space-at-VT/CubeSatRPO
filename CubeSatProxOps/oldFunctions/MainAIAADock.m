@@ -60,12 +60,12 @@ dock = [2.5,0,0];
 tol = [0.1,0.1,0.1];
 
 % Approach
-while separation(sat.p,dock,1) > tol(1) || separation(sat.p,dock,2) > tol(2)...
-        || separation(sat.p,dock,3) > tol(3)
-    sat.printEphemeris
-    sat.approach(dock,obj.lbnd,obj.ubnd);
-
-end
+% while separation(sat.p,dock,1) > tol(1) || separation(sat.p,dock,2) > tol(2)...
+%         || separation(sat.p,dock,3) > tol(3)
+%     sat.printEphemeris
+%     sat.approach(dock,obj.lbnd,obj.ubnd);
+% 
+% end
 
 % % Hold  
 % thold = 0;
