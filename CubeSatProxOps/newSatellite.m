@@ -42,9 +42,9 @@ classdef newSatellite < handle
         ub1 = []                    %b1 thrust over time,   N
         ub2 = []                    %b2 thrust over time,   N
         ub3 = []                    %b3 thrust over time,   N
-        T1 = []                     %x reaction torque,     N*m
-        T2 = []                     %y reaction torque,     N*m
-        T3 = []                     %z reaction torque,     N*m
+        T1 = []                     %x reaction torque,     Nm
+        T2 = []                     %y reaction torque,     Nm
+        T3 = []                     %z reaction torque,     Nm
         
         %% Attitude
         wb1 = 0                     %Angular velocity       rad/s
@@ -60,7 +60,7 @@ classdef newSatellite < handle
         point = 0                   %Attitude pointing      binary
         pt = [0,0,0]                %Attitude point target  m
         
-        %% Solver
+        %% MPC Solver
         T = 15                      %Horizon time,          s
         Nobj = 0
         Nslack = 0
@@ -68,6 +68,10 @@ classdef newSatellite < handle
         eom = []                    %Current state ouput
         J = 0                       %Cost fucntion over time
         flag = []                   %Exit flag
+        
+        %% Power
+%         pPanel = []
+%         pLoad = [] 
         
         %% STK
         app = [];
@@ -441,13 +445,13 @@ classdef newSatellite < handle
             Neom = sat.Neom;
             
             % Function coefficients
-            f = [dtM*ones(Nvar,1)           %Control thrusts
+            f = [dtM*ones(Nvar,1)
                  zeros(Neom,1)];
             
             % Parameter bounds, lower & upper
-            lb = [zeros(Nvar,1)             %Control thrusts
+            lb = [zeros(Nvar,1) 
                  -inf*ones(Neom,1)];
-            ub = [ones(Nvar,1);             %Control thrusts
+            ub = [ones(Nvar,1)
                   inf*ones(Neom,1)];
             
             % Equality contraints
@@ -461,8 +465,9 @@ classdef newSatellite < handle
             % Integer constraint
             intcon = [];
             
-            options = optimoptions(@intlinprog,'MaxTime',10);%'Display','None',
-            [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub);
+            % Optimizer
+            options = optimoptions(@intlinprog,'Display','None');
+            [U,fval,exitflag] = intlinprog(f,intcon,A,b,Aeq,beq,lb,ub,options);
             
             sat.scenario.dt = dt0;
             jj = 1;
@@ -681,7 +686,7 @@ classdef newSatellite < handle
                 sat.q3(iter)
                 sat.q4(iter)];
             
-            % Runge Kutta
+            % Runge-Kutta
             X = RKDP(@attitudeODE,sat.t(iter),dt,X0,sat,M);      
             sat.wb1(iter+1) = X(1);
             sat.wb2(iter+1) = X(2);
@@ -693,6 +698,27 @@ classdef newSatellite < handle
             sat.q2(iter+1) = X(5);
             sat.q3(iter+1) = X(6);
             sat.q4(iter+1) = X(7);
+        end
+        
+        %% Fix Attitude
+        function fixAttitude(sat,qN)
+           sat.wb1(end) = 0;
+           sat.wb2(end) = 0;
+           sat.wb3(end) = 0;
+           sat.q1(end) = qN(1);
+           sat.q2(end) = qN(2);
+           sat.q3(end) = qN(3);
+           sat.q4(end) = qN(4);
+        end
+        
+        %% Fix Position
+        function fixPosition(sat,pN)
+            sat.x(end) = pN(1);
+            sat.y(end) = pN(2);
+            sat.z(end) = pN(3);
+            sat.vx(end) = 0;
+            sat.vy(end) = 0;
+            sat.vz(end) = 0;
         end
         
         %% Plot relative trajectory
@@ -920,46 +946,47 @@ classdef newSatellite < handle
             c1 = [0,0.4470,0.7410];
             c2 = [0.8500,0.3250,0.0980];
             c3 = [0.9290,0.6940,0.1250];
+            TP = sat.scenario.TP;
             
             figure('Position',[100,100,1280,720]);
             subplot(3,1,1)
             hold on
-            plot(sat.t,sat.T1,'color',c1,'linewidth',1.5)
-            plot(sat.t,sat.T2,'color',c2,'linewidth',1.5)
-            plot(sat.t,sat.T3,'color',c3,'linewidth',1.5)
+            plot(sat.t/TP,sat.T1,'color',c1,'linewidth',1.5)
+            plot(sat.t/TP,sat.T2,'color',c2,'linewidth',1.5)
+            plot(sat.t/TP,sat.T3,'color',c3,'linewidth',1.5)
             hold off
-            axis([0 tf 0 1],'auto y')
+            axis([0 tf/TP 0 1],'auto y')
             grid on
             legend({'T1','T2','T3'},'location','eastoutside')
-            xl = xlabel('Time, s');
+            xl = xlabel('Time, Orbits');
             yl = ylabel('Nm');
             title('Reaction Torque')
             set([xl,yl],'FontSize',12)
             
             subplot(3,1,2)
             hold on
-            plot(sat.t,sat.wb1*(180/pi),'color',c1,'linewidth',1.5)
-            plot(sat.t,sat.wb2*(180/pi),'color',c2,'linewidth',1.5)
-            plot(sat.t,sat.wb3*(180/pi),'color',c3,'linewidth',1.5)
+            plot(sat.t/TP,sat.wb1*(180/pi),'color',c1,'linewidth',1.5)
+            plot(sat.t/TP,sat.wb2*(180/pi),'color',c2,'linewidth',1.5)
+            plot(sat.t/TP,sat.wb3*(180/pi),'color',c3,'linewidth',1.5)
             hold off
-            axis([0 tf 0 1],'auto y')
+            axis([0 tf/TP 0 1],'auto y')
             grid on
             legend({'\omega1','\omega2','\omega3'},'location','eastoutside')
-            xl = xlabel('Time, s');
+            xl = xlabel('Time, Orbits');
             yl = ylabel('deg/s');
             title('Angular Velocity')
             set([xl,yl],'FontSize',12)
             
             subplot(3,1,3)
             hold on
-            plot(sat.t,sat.q1,'color',c1,'linewidth',1.5)
-            plot(sat.t,sat.q2,'color',c2,'linewidth',1.5)
-            plot(sat.t,sat.q3,'color',c3,'linewidth',1.5)
-            plot(sat.t,sat.q4,'-k','linewidth',1.5)
+            plot(sat.t/TP,sat.q1,'color',c1,'linewidth',1.5)
+            plot(sat.t/TP,sat.q2,'color',c2,'linewidth',1.5)
+            plot(sat.t/TP,sat.q3,'color',c3,'linewidth',1.5)
+            plot(sat.t/TP,sat.q4,'-k','linewidth',1.5)
             hold off
-            axis([0 tf 0 1],'auto y')
+            axis([0 tf/TP 0 1],'auto y')
             grid on
-            xl = xlabel('Time, s');
+            xl = xlabel('Time, Orbits');
             legend({'q1','q2','q3','q4'},'location','eastoutside')
             title('Attitude Quaternions')
             set([xl,yl],'FontSize',12)
@@ -1028,12 +1055,14 @@ classdef newSatellite < handle
         %% Plot fuel usage
         function plotFuel(sat)
             tf = sat.t(end);
+            TP = sat.scenario.TP;
+            
             figure
-            plot(sat.t,sat.fuel,'k','linewidth',1)
-            axis([0 tf 0 sat.fuel(1)])
+            plot(sat.t/TP,sat.fuel,'k','linewidth',1.25)
+            axis([0 tf/TP 0 sat.fuel(1)])
             grid on
-            xlabel('Time [s]')
-            ylabel('Fuel, kg')
+            xlabel('Time, Orbits','fontsize',12)
+            ylabel('Fuel, kg','fontsize',12)
             drawnow
         end
         
@@ -1079,33 +1108,99 @@ classdef newSatellite < handle
             fprintf('Done\n')
         end
         
-        %% Power analysis
-        function pLoad = runPowerAnalysis(sat) 
-            % Component power
+        %% Create STK scenario
+        function createSTKobject(sat,app,root,model)
+            sat.app = app;
+            sat.root = root;
+            createEphemerisFile(sat);  
             
-            % Active
-%             pADCSmin = 3.17;
-%             pADCSmax = 7.23;
-%             pPropmin = 0.25;
-%             pPropmax = 10.00;
-%             pCPU = 2*0.4;
-%             pCam = 1.6;
-%             pComm = 1.0;
-%             pGPS = 0.8;
-%             pIdle = pCPU+pCam+pComm+pGPS;
-
-            % Target
-            pADCSmin = 0;
-            pADCSmax = 0;
-            pPropmin = 0;
-            pPropmax = 0;
-            pIdle = 3;
-    
-            % Iteration
+            % Create satellite
+            root.ExecuteCommand(sprintf('New / */Satellite %s',sat.name));
+            efile = strcat(cd,'\',sat.name,'.e');
+            afile = strcat(cd,'\',sat.name,'.a');
+            root.ExecuteCommand(sprintf('SetState */Satellite/%s FromFile "%s"',sat.name,efile));
+            root.ExecuteCommand(sprintf('SetAttitude */Satellite/%s File "%s"',sat.name,afile));
+            root.ExecuteCommand(sprintf('VO */Satellite/%s Pass3D OrbitLead None OrbitTrail None',sat.name));
+            
+            switch model
+                case '3U'
+                    % Create 3U model
+                    root.ExecuteCommand('VO */Satellite/RSO Model File "C:/Program Files/AGI/STK 11/STKData/VO/Models/Space/cubesat_2u.dae"');
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Cubesat_2U Pitch 0 180',sat.name));
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Plus-Z-Panel Deploy -120 0',sat.name));
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Minus-Z-Panel Deploy 120 0',sat.name));
+                    
+                    % Keep deployables
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Plus-Y-Panel Deploy 120 45',sat.name));
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Minus-Y-Panel Deploy -120 -45',sat.name));
+                case '6U'
+                    % Create 6U model
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Model File "C:/Program Files/AGI/STK 11/STKData/VO/Models/Space/cubesat_6u.dae"',sat.name));
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 6U-Cubesat Yaw 0 180',sat.name));
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Plus-Z-Plate Deploy 90 0',sat.name));
+                    root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Minus-Z-Plate Deploy -90 0',sat.name));
+                    
+                    % Turn off Deployables
+%                     root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Plus-Y-Plate Deploy -90 0',sat.name));
+%                     root.ExecuteCommand(sprintf('VO */Satellite/%s Articulate "1 Jan 2000" 0 Minus-Y-Plate Deploy 90 0',sat.name));    
+            end 
+        end
+        
+        %% Power analysis
+        function powerAnalysis(sat,model)
+            if nargin < 2, model = '6U'; end
+            
+            % STK objects
+            scenarioObj = sat.root.CurrentScenario;
+            satObj = scenarioObj.Children.Item(sat.name);
+            
+            % Power analysis
+            sat.root.UnitPreferences.Item('DateFormat').SetCurrentUnit('EpSec');
+            sat.root.ExecuteCommand(sprintf('VO */Satellite/%s SolarPanel Compute "1 Jan 2018 00:00:00" "6 Jan 2018 00:00:00" 60',sat.name));
+            powerDataProvider = satObj.DataProviders.Item('Solar Panel Power');
+            powerDataProviderInterval = powerDataProvider.Exec(scenarioObj.StartTime,scenarioObj.StopTime,1);
+            pTime = cell2mat(powerDataProviderInterval.DataSets.GetDataSetByName('Time').GetValues);
+            pPaneldBW = cell2mat(powerDataProviderInterval.DataSets.GetDataSetByName('Power').GetValues);
+            
+            % Convert dBW to watts
+            pPaneldBW = 10.^(pPaneldBW/10);
+            
+            % Interpolate to Matlab analysis time step
+            time = sat.t;
+            pPanel = interp1(pTime,pPaneldBW,time);
+            
+            %% Power usage
+            switch model
+                case '6U' % Active satellite
+                    pADCSmin = 3.17;
+                    pADCSmax = 7.23;
+                    pPropmin = 0.25;
+                    pPropmax = 10.00;
+                    pCPU = 2*0.4;
+                    pCam = 1.6;
+                    pComm = 1.0;
+                    pGPS = 0.8;
+                    pIdle = pCPU+pCam+pComm+pGPS;
+                    
+                    eff = 1;
+                    pPanel = pPanel*eff;
+                    
+                case '3U' % Target satellite
+                    pADCSmin = 0;
+                    pADCSmax = 0;
+                    pPropmin = 0;
+                    pPropmax = 0;
+                    pIdle = 4;
+                    
+                    eff = 1.5;
+                    pPanel = pPanel*eff;
+            end
+ 
+            % Calculate power usage
             pLoad = zeros(1,length(sat.t));
             for ii = 1:length(sat.t)         
                 % Component power
-                if sat.t(ii) < 2*sat.scenario.TP
+                if sat.t(ii) < 3*sat.scenario.TP
                     pADCS = pADCSmin;
                 else
                     pADCS = pADCSmin + (pADCSmax-pADCSmin)*...
@@ -1115,6 +1210,198 @@ classdef newSatellite < handle
                     sum(abs([sat.ux(ii),sat.uy(ii),sat.uz(ii)]/sat.umax));
                 pLoad(ii) = pADCS+pProp+pIdle;
             end
+            
+            %% Energy Managment Utility                        
+            % Constants
+            k6 = -30.155;
+            k5 = 97.5;
+            k4 = -123.27;
+            k3 = 77.946;
+            k2 = -26.082;
+            k1 = 4.8735;
+            k0 = 3.1935;
+            
+            %% Initial conditions 40 Whr
+            SOC40 = 0.5;                % State of charge (0-1)
+            nSeries = 1;                % Number of modules
+            nPacks = 1;                 % Number of battery packs
+            ZbattCR = 0.1;              % BOL Battery Impedance (Ohm)
+            ZbattDCR = 0.1;             % BOL Battery Impedance (Ohm)
+            maxCR = 2.6*2*nPacks;       % Max Battery Charge Rate (A)
+            maxDCR = -2*5.2*nPacks;     % Max Battery Discharge Rate (A)
+            
+            Emax = 40*3600;             % Battery capacity (J)
+            Eavail = SOC40*Emax;
+            Ibatt = 0;
+            for ii = 1:(length(time)-1)
+                % Available power
+                pAvail(ii) = pPanel(ii)-pLoad(ii);
+                
+                if pAvail(ii) < 0
+                    Zbatt = ZbattDCR; % Discharging
+                else
+                    Zbatt = ZbattCR; % Charging
+                end
+                
+                % Battery voltage
+                Vbatt_OC(ii) = nSeries*(k6*SOC40(ii)^6+k5*SOC40(ii)^5+k4*SOC40(ii)^4+...
+                    k3*SOC40(ii)^3+k2*SOC40(ii)^2+k1*SOC40(ii)+k0);
+                Vbatt(ii) = Vbatt_OC(ii)+Ibatt(ii)*Zbatt;
+                
+                % Available energy
+                dt = time(ii+1)-time(ii);
+                Eavail(ii+1) = Eavail(ii)+Ibatt(ii)*Vbatt(ii)*dt;
+                if Eavail(ii+1) >= Emax
+                    Eavail(ii+1) = Emax;
+                elseif Eavail(ii+1) < 0
+                    Eavail(ii+1) = 0;
+                end
+                
+                % Available current
+                Iavail = pAvail(ii)/Vbatt(ii);
+                if Iavail >= maxCR
+                    Ibatt(ii+1) = maxCR;
+                elseif Iavail <= maxDCR
+                    Ibatt(ii+1) = maxDCR;
+                else
+                    Ibatt(ii+1) = Iavail;
+                end
+                
+                % State of charge
+                SOC40(ii+1) = Eavail(ii+1)/Emax;
+            end
+            
+            %% Initial conditions 80 Whr
+            SOC80 = 0.5;                % State of charge (0-1)
+            nSeries = 1;                % Number of modules
+            nPacks = 2;                 % Number of battery packs
+            ZbattCR = 0.1;              % BOL Battery Impedance (Ohm)
+            ZbattDCR = 0.1;             % BOL Battery Impedance (Ohm)
+            maxCR = 2.6*2*nPacks;       % Max Battery Charge Rate (A)
+            maxDCR = -2*5.2*nPacks;     % Max Battery Discharge Rate (A)
+            
+            Emax = 80*3600;             % Battery capacity (J)
+            Eavail = SOC80*Emax;
+            Ibatt = 0;
+            for ii = 1:(length(time)-1)
+                % Available power
+                pAvail(ii) = pPanel(ii)-pLoad(ii);
+                
+                if pAvail(ii) < 0
+                    Zbatt = ZbattDCR; % Discharging
+                else
+                    Zbatt = ZbattCR; % Charging
+                end
+                
+                % Battery voltage
+                Vbatt_OC(ii) = nSeries*(k6*SOC80(ii)^6+k5*SOC80(ii)^5+k4*SOC80(ii)^4+...
+                    k3*SOC80(ii)^3+k2*SOC80(ii)^2+k1*SOC80(ii)+k0);
+                Vbatt(ii) = Vbatt_OC(ii)+Ibatt(ii)*Zbatt;
+                
+                % Available energy
+                dt = time(ii+1)-time(ii);
+                Eavail(ii+1) = Eavail(ii)+Ibatt(ii)*Vbatt(ii)*dt;
+                if Eavail(ii+1) >= Emax
+                    Eavail(ii+1) = Emax;
+                elseif Eavail(ii+1) < 0
+                    Eavail(ii+1) = 0;
+                end
+                
+                % Available current
+                Iavail = pAvail(ii)/Vbatt(ii);
+                if Iavail >= maxCR
+                    Ibatt(ii+1) = maxCR;
+                elseif Iavail <= maxDCR
+                    Ibatt(ii+1) = maxDCR;
+                else
+                    Ibatt(ii+1) = Iavail;
+                end
+                
+                % State of charge
+                SOC80(ii+1) = Eavail(ii+1)/Emax;
+            end
+            
+            %% Initial conditions 120 Whr
+            SOC120 = 0.5;                % State of charge (0-1)
+            nSeries = 1;                % Number of modules
+            nPacks = 3;                 % Number of battery packs
+            ZbattCR = 0.1;              % BOL Battery Impedance (Ohm)
+            ZbattDCR = 0.1;             % BOL Battery Impedance (Ohm)
+            maxCR = 2.6*2*nPacks;       % Max Battery Charge Rate (A)
+            maxDCR = -2*5.2*nPacks;     % Max Battery Discharge Rate (A)
+            
+            Emax = 120*3600;             % Battery capacity (J)
+            Eavail = SOC120*Emax;
+            Ibatt = 0;
+            for ii = 1:(length(time)-1)
+                % Available power
+                pAvail(ii) = pPanel(ii)-pLoad(ii);
+                
+                if pAvail(ii) < 0
+                    Zbatt = ZbattDCR; % Discharging
+                else
+                    Zbatt = ZbattCR; % Charging
+                end
+                
+                % Battery voltage
+                Vbatt_OC(ii) = nSeries*(k6*SOC80(ii)^6+k5*SOC120(ii)^5+k4*SOC120(ii)^4+...
+                    k3*SOC120(ii)^3+k2*SOC120(ii)^2+k1*SOC120(ii)+k0);
+                Vbatt(ii) = Vbatt_OC(ii)+Ibatt(ii)*Zbatt;
+                
+                % Available energy
+                dt = time(ii+1)-time(ii);
+                Eavail(ii+1) = Eavail(ii)+Ibatt(ii)*Vbatt(ii)*dt;
+                if Eavail(ii+1) >= Emax
+                    Eavail(ii+1) = Emax;
+                elseif Eavail(ii+1) < 0
+                    Eavail(ii+1) = 0;
+                end
+                
+                % Available current
+                Iavail = pAvail(ii)/Vbatt(ii);
+                if Iavail >= maxCR
+                    Ibatt(ii+1) = maxCR;
+                elseif Iavail <= maxDCR
+                    Ibatt(ii+1) = maxDCR;
+                else
+                    Ibatt(ii+1) = Iavail;
+                end
+                
+                % State of charge
+                SOC120(ii+1) = Eavail(ii+1)/Emax;
+            end
+            
+            %% Plots
+            TP = sat.scenario.TP;
+            
+            figure('Position',[100,100,1280,720])
+            subplot(2,1,1)
+            hold on
+            plot(time/TP,pPanel,'LineWidth',1.5)
+            plot(time/TP,pLoad,'LineWidth',1.5)
+            plot(time/TP,pPanel-pLoad,'LineWidth',1.5)
+            hold off
+            grid on
+            axis([0 time(end)/TP 0 1],'auto y')
+            xlabel('Time, Orbits','FontSize',12)
+            ylabel('Watts','FontSize',12)
+            legend({'Solar Power Generation','Power Usage','Net Power'},...
+                'location','northoutside','Orientation','horizontal','FontSize',12)
+            
+            subplot(2,1,2)
+            hold on
+            plot(time/TP,SOC40*100,'LineWidth',1.5)
+            plot(time/TP,SOC80*100,'LineWidth',1.5)
+            plot(time/TP,SOC120*100,'LineWidth',1.5)
+            hold off
+            grid on
+            axis([0 time(end)/TP 0 100])
+            xlabel('Time, Orbits','FontSize',12)
+            ylabel('State of Charge, %','FontSize',12)
+            legend({'40 Whr Battery','80 Whr Battery'},'location','northoutside','Orientation','horizontal','FontSize',12)
+            legend({'40 Whr Battery','80 Whr Battery','120 Whr Battery'},...
+                'location','northoutside','Orientation','horizontal','FontSize',12)           
+            drawnow
         end
     end
 end
@@ -1492,6 +1779,94 @@ for ii = 1:4
 end
 end
 
+% Draw satellite
+function plotSatellite(r,h,panel,panelAngle)
+grid on
+
+c = [0.5,0.5,0.5];
+ang = pi/8;
+theta = linspace(ang,2*pi+ang);
+
+% Top face
+topy = r*cos(theta);
+topz = r*sin(theta);
+topx = h/2*ones(1,length(theta));
+patch(topx,topy,topz,c,'EdgeColor','None')
+
+% Bottom face
+boty = r*cos(theta);
+botz = r*sin(theta);
+botx = -h/2*ones(1,length(theta));
+
+patch(botx,boty,botz,c,'EdgeColor','None')
+
+% Panels
+panc = [0.6,0.8,1];
+panz = [r,r+panel(1),r+panel(1),r];
+pany = [-panel(2)/2,-panel(2)/2,panel(2)/2,panel(2)/2]*cosd(panelAngle);
+panx = [-panel(2)/2,-panel(2)/2,panel(2)/2,panel(2)/2]*sind(panelAngle);
+patch(panx,pany,panz,panc)
+patch(panx,pany,-panz,panc)
+
+% Sides
+for ii = 1:length(theta)-1
+   x = [topx(ii),topx(ii+1),botx(ii+1),botx(ii)];
+   y = [topy(ii),topy(ii+1),boty(ii+1),boty(ii)];
+   z = [topz(ii),topz(ii+1),botz(ii+1),botz(ii)];
+   patch(x,y,z,c,'EdgeColor','None')
+end
+
+% Plotting
+% light('Position',[0 -100 100],'Style','local');
+end
+
+function plotShuttle(x,y,z,pitch,roll,yaw,scale_factor,step,cv)
+load shuttle;
+V = [-V(:,2) V(:,1) V(:,3)];
+V(:,1) = V(:,1)-round(sum(V(:,1))/size(V,1));
+V(:,2) = V(:,2)-round(sum(V(:,2))/size(V,1));
+V(:,3) = V(:,3)-round(sum(V(:,3))/size(V,1));
+
+correction = max(abs(V(:,1)));
+V = V./(scale_factor*correction);
+ii = length(x);
+resto = mod(ii,step);
+
+y = y;
+z = z;
+pitch = pitch;
+roll = roll;
+yaw = -yaw;
+
+for jj = 1:step:(ii-resto)
+    theta = pitch(jj);
+    phi = -roll(jj);
+    psi = yaw(jj);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Tbe = [cos(psi)*cos(theta), -sin(psi)*cos(theta), sin(theta);
+        cos(psi)*sin(theta)*sin(phi)+sin(psi)*cos(phi) ...
+        -sin(psi)*sin(theta)*sin(phi)+cos(psi)*cos(phi) ...
+        -cos(theta)*sin(phi);
+        -cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi) ...
+        sin(psi)*sin(theta)*cos(phi)+cos(psi)*sin(phi) ...
+        cos(theta)*cos(phi)];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Vnew = V*Tbe;
+    rif = [x(jj) y(jj) z(jj)];
+    X0 = repmat(rif,size(Vnew,1),1);
+    Vnew = Vnew + X0;
+    p = patch('faces', F, 'vertices' ,Vnew);
+    set(p, 'facec', cv);
+    set(p, 'EdgeColor','none');
+    H1 = light('Position',[100 0 0],'Style','local');
+    camva(9)
+    hold on
+%     lighting phong
+    daspect([1 1 1]) ;
+    
+end
+end
+
 % Dormand - Prince Runge Kutta integration
 function X = RKDP(odefun,t0,dt,X0,sat,u)
 % Step 1
@@ -1569,4 +1944,39 @@ end
 function dXdt = trajectoryODE(t,X,sat,u)
 A = LERM(sat.scenario,t);
 dXdt = A*X+u/sat.m;
+end
+
+% Create STK ephemeris files
+function createEphemerisFile(sat)
+% Trajectory
+filename = strcat(sat.name,'.e');
+fileID = fopen(filename,'w');
+fprintf(fileID,'stk.v.8.0\r\n\r\nBEGIN Ephemeris\r\n\r\n');
+fprintf(fileID,'NumberOfEphemerisPoints %d\r\n',length(sat.x));
+fprintf(fileID,'CoordinateSystem Custom RIC Satellite/Origin\r\n\r\n');
+fprintf(fileID,'EphemerisTimePosVel\r\n\r\n');
+
+for ii = 1:length(sat.x);
+    fprintf(fileID,'%f %f %f %f %f %f %f\r\n',sat.t(ii),sat.x(ii),sat.y(ii),sat.z(ii),...
+        sat.vy(ii),-sat.vz(ii),-sat.vx(ii));
+end
+
+fprintf(fileID,'END Ephemeris');
+fclose(fileID);
+
+% Attitude
+filename = strcat(sat.name,'.a');
+fileID = fopen(filename,'w');
+fprintf(fileID,'stk.v.8.0\r\n\r\nBEGIN Attitude\r\n\r\n');
+fprintf(fileID,'NumberOfAttitudePoints %d\r\n',length(sat.x));
+fprintf(fileID,'CoordinateSystem Custom RIC Satellite/Origin\r\n\r\n');
+% fprintf(fileID,'AttitudeTimeQuatAngVels\r\n\r\n');
+fprintf(fileID,'AttitudeTimeQuaternions\r\n\r\n');
+
+for ii = 1:length(sat.x);
+    fprintf(fileID,'%f %f %f %f %f\r\n',sat.t(ii),sat.q1(ii),sat.q2(ii),sat.q3(ii),sat.q4(ii));
+end
+
+fprintf(fileID,'END Attitude');
+fclose(fileID);
 end
